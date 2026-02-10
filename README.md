@@ -21,9 +21,9 @@ Welcome to the central command center of the **MARZI-GEMI Family**. This is wher
 
 ## 🛠️ Development
 First, run the development server:
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 ---
-_Keep shining and make everyone smile in MG2 House!_ "r�
+_Keep shining and make everyone smile in MG2 House!_ ✨
