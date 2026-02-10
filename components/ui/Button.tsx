@@ -1,7 +1,7 @@
 import React from 'react'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'white'
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
 }
@@ -15,11 +15,12 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props 
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-manrope font-normal text-[14px] leading-[19.12px] border transition-all active:scale-[0.98] gap-[10px] px-[12px] py-[10px]'
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-manrope font-semibold text-[14px] leading-[19.12px] border transition-all active:scale-[0.98] gap-[10px] px-[12px] py-[10px]'
   
   const variants = {
     primary: 'bg-[#111214] text-white border-white/10 hover:bg-[#1a1b1e]',
     secondary: 'bg-[#151618] text-white border-white/10 hover:bg-[#1f2023]',
+    white: 'bg-white text-black border-transparent hover:bg-white/90',
   }
 
   const disabledStyles = disabled ? 'opacity-20 cursor-not-allowed active:scale-100' : ''
