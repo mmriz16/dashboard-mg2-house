@@ -1,37 +1,38 @@
 import React from 'react'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  variant?: 'primary' | 'secondary'
+  leftIcon?: React.ReactNode
+  rightIcon?: React.ReactNode
 }
 
 export const Button: React.FC<ButtonProps> = ({ 
   children, 
   variant = 'primary', 
-  size = 'md', 
+  leftIcon,
+  rightIcon,
   className = '', 
+  disabled,
   ...props 
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-manrope transition-all active:scale-95 disabled:opacity-50'
+  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-manrope font-normal text-[14px] leading-[19.12px] border transition-all active:scale-[0.98] gap-[10px] px-[12px] py-[10px]'
   
   const variants = {
-    primary: 'bg-white text-black hover:bg-white/90',
-    secondary: 'bg-[#151618] text-white border border-white/10 hover:bg-[#1c1d20]',
-    ghost: 'bg-transparent text-white/70 hover:text-white hover:bg-white/5',
+    primary: 'bg-[#111214] text-white border-white/10 hover:bg-[#1a1b1e]',
+    secondary: 'bg-[#151618] text-white border-white/10 hover:bg-[#1f2023]',
   }
 
-  const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-  }
+  const disabledStyles = disabled ? 'opacity-20 cursor-not-allowed active:scale-100' : ''
 
   return (
     <button 
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${baseStyles} ${variants[variant]} ${disabledStyles} ${className}`}
+      disabled={disabled}
       {...props}
     >
+      {leftIcon && <span className="w-4 h-4 flex items-center justify-center">{leftIcon}</span>}
       {children}
+      {rightIcon && <span className="w-4 h-4 flex items-center justify-center">{rightIcon}</span>}
     </button>
   )
 }
