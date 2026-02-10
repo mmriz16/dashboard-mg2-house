@@ -1,0 +1,40 @@
+import React from 'react'
+import { Badge } from './ui/Badge'
+
+interface MenuItemProps {
+  label: string
+  icon?: React.ReactNode
+  rightIcon?: React.ReactNode
+  badgeText?: string
+  active?: boolean
+  disabled?: boolean
+  onClick?: () => void
+}
+
+export const MenuItem: React.FC<MenuItemProps> = ({
+  label,
+  icon,
+  rightIcon,
+  badgeText,
+  active = false,
+  disabled = false,
+  onClick
+}) => {
+  return (
+    <div 
+      onClick={!disabled ? onClick : undefined}
+      className={`
+        flex items-center gap-[10px] px-[8px] py-[8px] rounded-[8px] border w-[235px] h-[40px] transition-all cursor-pointer
+        ${active ? 'bg-white/10 text-white border-white/10' : 'bg-[#111214] text-white/50 border-white/10 hover:bg-white/5 hover:text-white'}
+        ${disabled ? 'opacity-20 cursor-not-allowed' : ''}
+      `}
+    >
+      {icon && <div className="w-[16px] h-[16px] flex items-center justify-center">{icon}</div>}
+      <span className="flex-1 text-[14px] font-manrope font-normal overflow-hidden text-ellipsis whitespace-nowrap">
+        {label}
+      </span>
+      {badgeText && <Badge text={badgeText} style="default" />}
+      {rightIcon && <div className="w-[16px] h-[16px] flex items-center justify-center">{rightIcon}</div>}
+    </div>
+  )
+}
