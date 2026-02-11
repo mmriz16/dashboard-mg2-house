@@ -25,7 +25,7 @@ export const SubMenuItem: React.FC<SubMenuItemProps> = ({
       <div className="w-[16px] h-[40px] flex items-center justify-center">
         <div className="w-[8px] h-[1px] bg-white/10" />
       </div>
-      <div 
+      <div
         onClick={!disabled ? onClick : undefined}
         className={`
           flex-1 flex items-center gap-[10px] px-[10px] py-[8px] rounded-[8px] border h-[40px] transition-all cursor-pointer

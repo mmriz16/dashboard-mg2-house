@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111214;
 }
 
 @theme inline {
@@ -10,7 +10,7 @@
   --color-foreground: var(--foreground);
   --font-manrope: var(--font-manrope);
   --font-ibm-plex-mono: var(--font-ibm-plex-mono);
-  
+
   /* Fallbacks */
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--foreground-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -18,7 +18,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #111214;
     --foreground: #ededed;
   }
 }

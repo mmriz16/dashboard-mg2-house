@@ -21,7 +21,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
   onClick
 }) => {
   return (
-    <div 
+    <div
       onClick={!disabled ? onClick : undefined}
       className={`
         flex items-center gap-[10px] px-[8px] py-[8px] rounded-[8px] border w-[235px] h-[40px] transition-all cursor-pointer

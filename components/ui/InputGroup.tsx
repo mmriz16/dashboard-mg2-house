@@ -1,14 +1,14 @@
 import React from 'react'
 import { Input } from './Input'
 
-interface InputGroupProps {
+interface InputGroupProps extends React.InputHTMLAttributes<HTMLInputElement> {
   title?: string
-  placeholder?: string
   description?: string
   linkText?: string
   linkHref?: string
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
+  descriptionClassName?: string
 }
 
 export const InputGroup: React.FC<InputGroupProps> = ({
@@ -18,29 +18,30 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   linkText,
   linkHref = '#',
   leftIcon,
-  rightIcon
+  rightIcon,
+  className,
+  descriptionClassName,
+  ...props
 }) => {
   return (
-    <div className="flex flex-col gap-[10px] w-full max-w-[320px]">
-      {title && (
-        <label className="text-[14px] font-manrope font-normal text-white ml-[1px]">
-          {title}
-        </label>
-      )}
-      <Input 
+    <div className={`flex flex-col gap-[10px] w-full ${className || ''}`}>
+      <Input
+        label={title}
         placeholder={placeholder}
+        leftIcon={leftIcon}
         rightIcon={rightIcon}
-        className="h-[40px] px-[16px] py-[16px]" // Adjusted to match Figma's total height
+        {...props}
       />
+
       {(description || linkText) && (
-        <div className="flex items-center justify-between px-[1px]">
+        <div className="flex items-center justify-between w-full">
           {description && (
-            <span className="text-[14px] font-manrope font-normal text-white/70">
+            <span className={`text-[14px] font-ibm-plex-mono font-normal text-white/70 ${descriptionClassName || ''}`}>
               {description}
             </span>
           )}
           {linkText && (
-            <a href={linkHref} className="text-[14px] font-manrope font-normal text-[#FB2C36] hover:underline">
+            <a href={linkHref} className="text-[14px] font-ibm-plex-mono font-normal text-[#FB2C36] hover:underline ml-auto">
               {linkText}
             </a>
           )}
