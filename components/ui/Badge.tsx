@@ -10,11 +10,11 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ text, style = 'default', className = '' }) => {
   const styles = {
-    default: 'bg-[#B558FF]/10 text-[#B558FF]',
-    success: 'bg-[#00C950]/10 text-[#00C950]',
-    warning: 'bg-[#F0B100]/10 text-[#F0B100]',
-    danger: 'bg-[#FB2C36]/10 text-[#FB2C36]',
-    info: 'bg-[#00A6F4]/10 text-[#00A6F4]',
+    default: 'bg-purple/10 text-purple',
+    success: 'bg-green/10 text-green',
+    warning: 'bg-yellow/10 text-yellow',
+    danger: 'bg-red/10 text-red',
+    info: 'bg-blue/10 text-blue',
   }
 
   return (

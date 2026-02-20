@@ -24,7 +24,7 @@ export const InputGroup: React.FC<InputGroupProps> = ({
   ...props
 }) => {
   return (
-    <div className={`flex flex-col gap-[10px] w-full ${className || ''}`}>
+    <div className={`flex flex-col gap-[4px] w-full ${className || ''}`}>
       <Input
         label={title}
         placeholder={placeholder}
@@ -41,7 +41,7 @@ export const InputGroup: React.FC<InputGroupProps> = ({
             </span>
           )}
           {linkText && (
-            <a href={linkHref} className="text-[14px] font-ibm-plex-mono font-normal text-[#FB2C36] hover:underline ml-auto">
+            <a href={linkHref} className="text-[14px] font-ibm-plex-mono font-normal text-red hover:underline ml-auto">
               {linkText}
             </a>
           )}

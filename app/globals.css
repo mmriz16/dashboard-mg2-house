@@ -1,30 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111214;
+  --background: #111214;
+  --foreground: #ededed;
 }
 
 @theme inline {
+  /* ===== Background / Surface ===== */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: #111214;
+  --color-surface-card: #151618;
+  --color-surface-hover: #1a1b1e;
+
+  /* ===== Brand Colors ===== */
+  --color-purple: #B558FF;
+  --color-green: #00C950;
+  --color-yellow: #F0B100;
+  --color-red: #FB2C36;
+  --color-blue: #00A6F4;
+
+  /* ===== Semantic Colors ===== */
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-hover: rgba(255, 255, 255, 0.2);
+  --color-muted: rgba(255, 255, 255, 0.5);
+  --color-subtle: rgba(255, 255, 255, 0.7);
+
+  /* ===== Typography ===== */
   --font-manrope: var(--font-manrope);
   --font-ibm-plex-mono: var(--font-ibm-plex-mono);
 
   /* Fallbacks */
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--foreground-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111214;
-    --foreground: #ededed;
-  }
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
+}
+
+/* Override browser autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface) inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

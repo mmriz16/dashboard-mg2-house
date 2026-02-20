@@ -1,14 +1,22 @@
+'use client'
+
 import React from 'react'
 import { Badge } from './ui/Badge'
+
+type SubMenuItemVariant = 'primary' | 'secondary' | 'disabled'
+type BadgeStyle = 'default' | 'success' | 'warning' | 'danger' | 'info'
 
 interface SubMenuItemProps {
   label: string
   icon?: React.ReactNode
   rightIcon?: React.ReactNode
   badgeText?: string
+  badgeStyle?: BadgeStyle
+  variant?: SubMenuItemVariant
   active?: boolean
   disabled?: boolean
   onClick?: () => void
+  className?: string
 }
 
 export const SubMenuItem: React.FC<SubMenuItemProps> = ({
@@ -16,29 +24,56 @@ export const SubMenuItem: React.FC<SubMenuItemProps> = ({
   icon,
   rightIcon,
   badgeText,
+  badgeStyle = 'default',
+  variant = 'primary',
   active = false,
   disabled = false,
-  onClick
+  onClick,
+  className = '',
 }) => {
+  const isDisabled = disabled || variant === 'disabled'
+
+  const variantStyles: Record<SubMenuItemVariant, string> = {
+    primary:
+      'bg-surface outline outline-border',
+    secondary:
+      'outline outline-transparent hover:bg-surface-hover',
+    disabled:
+      'opacity-20 outline outline-transparent cursor-not-allowed',
+  }
+
+  const activeStyle = 'bg-surface outline outline-border'
+
   return (
-    <div className="flex items-center w-[235px]">
-      <div className="w-[16px] h-[40px] flex items-center justify-center">
-        <div className="w-[8px] h-[1px] bg-white/10" />
-      </div>
-      <div
-        onClick={!disabled ? onClick : undefined}
-        className={`
-          flex-1 flex items-center gap-[10px] px-[10px] py-[8px] rounded-[8px] border h-[40px] transition-all cursor-pointer
-          ${active ? 'bg-white/10 text-white border-white/10' : 'bg-[#111214] text-white/50 border-white/10 hover:bg-white/5 hover:text-white'}
-          ${disabled ? 'opacity-20 cursor-not-allowed' : ''}
-        `}
-      >
-        {icon && <div className="w-[16px] h-[16px] flex items-center justify-center">{icon}</div>}
-        <span className="flex-1 text-[14px] font-manrope font-normal overflow-hidden text-ellipsis whitespace-nowrap">
-          {label}
-        </span>
-        {badgeText && <Badge text={badgeText} style="default" />}
-        {rightIcon && <div className="w-[16px] h-[16px] flex items-center justify-center">{rightIcon}</div>}
+    <div className={`w-60 pl-4 inline-flex flex-col justify-start items-start gap-2.5 ${className}`}>
+      <div className="self-stretch border-l border-border inline-flex justify-start items-center">
+        {/* Horizontal connector line */}
+        <div className="w-2 h-0 outline outline-offset-[-0.50px] outline-border" />
+
+        {/* Menu item content */}
+        <div
+          onClick={!isDisabled ? onClick : undefined}
+          className={`
+            flex-1 h-10 pl-2.5 pr-2 py-2 rounded-lg flex justify-start items-center gap-2.5
+            transition-all cursor-pointer
+            ${isDisabled ? variantStyles.disabled : active ? activeStyle : variantStyles[variant]}
+          `}
+        >
+          {icon && (
+            <div className="w-4 h-4 flex items-center justify-center text-white">
+              {icon}
+            </div>
+          )}
+          <span className="flex-1 text-white text-sm font-normal font-manrope line-clamp-1">
+            {label}
+          </span>
+          {badgeText && <Badge text={badgeText} style={badgeStyle} />}
+          {rightIcon && (
+            <div className="w-4 h-4 flex items-center justify-center text-white">
+              {rightIcon}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -30,13 +30,13 @@ export const Input: React.FC<InputProps> = ({
         )}
         <input
           className={`
-            w-full bg-[#111214] border border-white/10 rounded-[8px] 
-            text-[14px] font-manrope text-white placeholder:text-white/50
-            focus:outline-none focus:border-white/20 transition-all
+            w-full bg-surface border border-border rounded-[8px] 
+            text-[14px] font-manrope text-white placeholder:text-muted
+            focus:outline-none focus:border-border-hover transition-all
             h-[40px] py-[10px]
             ${leftIcon ? 'pl-[42px]' : 'px-[16px]'} 
             ${rightIcon ? 'pr-[42px]' : 'px-[16px]'}
-            ${error ? 'border-red-500/50' : ''}
+            ${error ? 'border-red/50' : ''}
             ${className}
           `}
           {...props}
