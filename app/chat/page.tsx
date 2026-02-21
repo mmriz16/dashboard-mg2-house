@@ -18,17 +18,35 @@ type ChatMessage = {
 };
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
-const AGENT_DISPLAY_NAME = "Marsha Lenathea👾";
+const AGENT_DISPLAY_NAME = "Marsha Lenathea??";
 
-function extractOfficialUsageLabel(text: string): string | undefined {
+function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
   const compact = text.replace(/\s+/g, " ");
-  const m = compact.match(/Usage\s*5\s*jam:\s*(\d+)%\s*sisa\s*\([^)]*?(\d+)j\s*(\d+)m\)/i);
+  const m = compact.match(/Usage\s*5\s*jam:[^()]*\((?:[^0-9]*)(\d+)\s*[jh]\s*(\d+)\s*m\)/i);
   if (!m) return undefined;
-  const leftPct = Number(m[1]);
-  const h = Number(m[2]);
-  const min = Number(m[3]);
-  if (!Number.isFinite(leftPct) || !Number.isFinite(h) || !Number.isFinite(min)) return undefined;
-  return `${leftPct}% left - ${h}h ${min}m`;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return undefined;
+  return { h, m: min };
+}
+
+function mergeUsageLabelWithOfficialReset(baseUsageLabel: string | undefined, text: string): string | undefined {
+  if (!baseUsageLabel) return undefined;
+  const pct = Number((baseUsageLabel.match(/^(\d{1,3})%/) || [])[1]);
+  if (!Number.isFinite(pct)) return baseUsageLabel;
+
+  const remaining = extractOfficialResetRemaining(text);
+  if (!remaining) return baseUsageLabel;
+
+  const resetAtMs = Date.now() + (remaining.h * 60 + remaining.m) * 60000;
+  const resetAt = new Date(resetAtMs).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Jakarta",
+  });
+
+  return `${pct}% - ${remaining.h}h ${remaining.m}m (${resetAt})`;
 }
 
 function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string {
@@ -261,8 +279,7 @@ export default function DashboardPage() {
         const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string; usageLabel?: string };
         const text = payload?.text || "(No reply text)";
         const modelId = payload?.model;
-        const officialUsageLabel = extractOfficialUsageLabel(text);
-        const usageLabel = officialUsageLabel || payload?.usageLabel;
+        const usageLabel = mergeUsageLabelWithOfficialReset(payload?.usageLabel, text);
         if (modelId) {
           setLatestAgentModelId(modelId);
         }
@@ -485,3 +502,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
