@@ -20,22 +20,38 @@ type ChatMessage = {
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
 const STAR_PARTICLES = [
+  { x: 6, y: 12, s: 1.2, o: 0.2, d: 0.1, c: "#dbeafe" },
+  { x: 10, y: 25, s: 1.8, o: 0.33, d: 0.5, c: "#bfdbfe" },
   { x: 12, y: 22, s: 2, o: 0.4, d: 0, c: "#dbeafe" },
-  { x: 20, y: 34, s: 1.5, o: 0.3, d: 0.4, c: "#bfdbfe" },
-  { x: 27, y: 18, s: 2.5, o: 0.45, d: 1.2, c: "#e9d5ff" },
-  { x: 35, y: 40, s: 1.5, o: 0.35, d: 0.7, c: "#c4b5fd" },
-  { x: 43, y: 24, s: 2, o: 0.35, d: 1.5, c: "#93c5fd" },
-  { x: 52, y: 30, s: 1.5, o: 0.28, d: 2.2, c: "#a5b4fc" },
-  { x: 60, y: 20, s: 2.5, o: 0.48, d: 0.9, c: "#ddd6fe" },
-  { x: 68, y: 36, s: 1.5, o: 0.32, d: 1.8, c: "#bfdbfe" },
-  { x: 76, y: 22, s: 2, o: 0.36, d: 2.6, c: "#c7d2fe" },
-  { x: 84, y: 33, s: 1.5, o: 0.3, d: 1.1, c: "#dbeafe" },
+  { x: 14, y: 42, s: 1.4, o: 0.26, d: 1.2, c: "#c7d2fe" },
   { x: 16, y: 54, s: 1.5, o: 0.28, d: 1.6, c: "#c4b5fd" },
+  { x: 20, y: 34, s: 1.5, o: 0.3, d: 0.4, c: "#bfdbfe" },
+  { x: 22, y: 62, s: 1.2, o: 0.22, d: 2.1, c: "#dbeafe" },
+  { x: 24, y: 14, s: 1.7, o: 0.3, d: 0.9, c: "#a5b4fc" },
+  { x: 27, y: 18, s: 2.5, o: 0.45, d: 1.2, c: "#e9d5ff" },
   { x: 29, y: 62, s: 2, o: 0.4, d: 0.5, c: "#ddd6fe" },
+  { x: 31, y: 46, s: 1.3, o: 0.25, d: 1.7, c: "#bfdbfe" },
+  { x: 35, y: 40, s: 1.5, o: 0.35, d: 0.7, c: "#c4b5fd" },
+  { x: 38, y: 22, s: 1.4, o: 0.24, d: 2.4, c: "#ddd6fe" },
   { x: 41, y: 56, s: 1.5, o: 0.3, d: 2.1, c: "#bfdbfe" },
+  { x: 43, y: 24, s: 2, o: 0.35, d: 1.5, c: "#93c5fd" },
+  { x: 46, y: 66, s: 1.3, o: 0.22, d: 0.8, c: "#c7d2fe" },
+  { x: 50, y: 16, s: 1.4, o: 0.28, d: 1.1, c: "#dbeafe" },
+  { x: 52, y: 30, s: 1.5, o: 0.28, d: 2.2, c: "#a5b4fc" },
   { x: 54, y: 64, s: 2.2, o: 0.42, d: 1.4, c: "#c7d2fe" },
+  { x: 57, y: 48, s: 1.4, o: 0.24, d: 2.8, c: "#ddd6fe" },
+  { x: 60, y: 20, s: 2.5, o: 0.48, d: 0.9, c: "#ddd6fe" },
+  { x: 63, y: 70, s: 1.2, o: 0.2, d: 1.3, c: "#bfdbfe" },
   { x: 66, y: 58, s: 1.7, o: 0.32, d: 2.7, c: "#93c5fd" },
+  { x: 68, y: 36, s: 1.5, o: 0.32, d: 1.8, c: "#bfdbfe" },
+  { x: 71, y: 14, s: 1.6, o: 0.25, d: 0.6, c: "#c4b5fd" },
+  { x: 74, y: 52, s: 1.4, o: 0.22, d: 2.0, c: "#a5b4fc" },
+  { x: 76, y: 22, s: 2, o: 0.36, d: 2.6, c: "#c7d2fe" },
   { x: 78, y: 63, s: 2, o: 0.38, d: 1.9, c: "#ddd6fe" },
+  { x: 82, y: 44, s: 1.3, o: 0.22, d: 1.5, c: "#dbeafe" },
+  { x: 84, y: 33, s: 1.5, o: 0.3, d: 1.1, c: "#dbeafe" },
+  { x: 88, y: 20, s: 1.8, o: 0.3, d: 2.3, c: "#ddd6fe" },
+  { x: 92, y: 58, s: 1.4, o: 0.22, d: 0.3, c: "#bfdbfe" },
 ];
 
 function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
@@ -526,13 +542,18 @@ export default function DashboardPage() {
                   0%,100% { filter: blur(0px) drop-shadow(0 0 0 rgba(147,197,253,0)); }
                   50% { filter: blur(0.2px) drop-shadow(0 0 8px rgba(167,139,250,0.7)); }
                 }
+                @keyframes shootingStar {
+                  0% { transform: translate3d(-18vw, -10vh, 0) rotate(-18deg); opacity: 0; }
+                  8% { opacity: 0.9; }
+                  22% { opacity: 0; }
+                  100% { transform: translate3d(50vw, 24vh, 0) rotate(-18deg); opacity: 0; }
+                }
               `}</style>
 
               <div
                 className="pointer-events-none absolute inset-0 transition-transform duration-300"
                 style={{ transform: `translate(${starDrift.x}px, ${starDrift.y}px)` }}
               >
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.16),transparent_60%)]" />
                 {STAR_PARTICLES.map((p, i) => (
                   <span
                     key={`star-${i}`}
@@ -544,7 +565,7 @@ export default function DashboardPage() {
                       height: `${p.s}px`,
                       backgroundColor: p.c,
                       opacity: p.o,
-                      boxShadow: `0 0 ${6 + p.s * 3}px ${p.c}`,
+                      boxShadow: `0 0 ${5 + p.s * 2}px ${p.c}`,
                       animation: `starFloat ${4 + (i % 5) * 0.75}s ease-in-out infinite, starPulse ${3.2 + (i % 4) * 0.6}s ease-in-out infinite`,
                       animationDelay: `-${p.d}s`,
                       // @ts-expect-error css vars for animation
@@ -554,6 +575,15 @@ export default function DashboardPage() {
                     }}
                   />
                 ))}
+
+                <div
+                  className="absolute left-[8%] top-[18%] h-[1.5px] w-28 bg-gradient-to-r from-white/0 via-sky-200/90 to-white/0"
+                  style={{ animation: "shootingStar 14s linear infinite", animationDelay: "1.8s" }}
+                />
+                <div
+                  className="absolute left-[48%] top-[8%] h-[1.5px] w-24 bg-gradient-to-r from-white/0 via-indigo-200/90 to-white/0"
+                  style={{ animation: "shootingStar 17s linear infinite", animationDelay: "7.3s" }}
+                />
               </div>
 
               <div className="w-full max-w-5xl z-10">
