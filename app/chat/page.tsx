@@ -270,21 +270,19 @@ export default function DashboardPage() {
       },
     ]);
 
-    const chars = Array.from(text);
+    const chunks = text.match(/\S+\s*|\s+/g) || [text];
     let i = 0;
 
-    // bikin streaming terasa nyata (gak langsung selesai)
-    const minDurationMs = 1200;
-    const targetCps = 28; // chars per second
-    const naturalDuration = Math.ceil((chars.length / targetCps) * 1000);
+    // word-by-word streaming
+    const minDurationMs = 1300;
+    const targetWps = 4.2; // words/chunks per second
+    const naturalDuration = Math.ceil((chunks.length / targetWps) * 1000);
     const totalDuration = Math.max(minDurationMs, naturalDuration);
-    const tickMs = 30;
-    const totalTicks = Math.max(1, Math.ceil(totalDuration / tickMs));
-    const step = Math.max(1, Math.ceil(chars.length / totalTicks));
+    const tickMs = Math.max(24, Math.floor(totalDuration / Math.max(1, chunks.length)));
 
     streamTimerRef.current = setInterval(() => {
-      i = Math.min(chars.length, i + step);
-      const next = chars.slice(0, i).join("");
+      i = Math.min(chunks.length, i + 1);
+      const next = chunks.slice(0, i).join("");
 
       setChatMessages((prev) =>
         prev.map((m) =>
@@ -297,11 +295,11 @@ export default function DashboardPage() {
         )
       );
 
-      if (i >= chars.length && streamTimerRef.current) {
+      if (i >= chunks.length && streamTimerRef.current) {
         clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
       }
-    }, 24);
+    }, tickMs);
   };
 
   const waitForAgentReply = (sessionKey: string, afterTs: number) => {
