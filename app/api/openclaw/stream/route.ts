@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 type SessionEntry = {
   sessionFile?: string;
+  sessionId?: string;
   updatedAt?: number;
 };
 
@@ -42,10 +43,18 @@ function readSessionFileForKey(sessionKey: string): string | null {
   const prefixedKey = parsed?.[`agent:main:${sessionKey}`];
   const entry = directKey || prefixedKey;
 
-  if (!entry?.sessionFile) return null;
-  if (!fs.existsSync(entry.sessionFile)) return null;
+  if (!entry) return null;
 
-  return entry.sessionFile;
+  if (entry.sessionFile && fs.existsSync(entry.sessionFile)) {
+    return entry.sessionFile;
+  }
+
+  if (entry.sessionId) {
+    const fallback = path.join(path.dirname(sessionsPath), `${entry.sessionId}.jsonl`);
+    if (fs.existsSync(fallback)) return fallback;
+  }
+
+  return null;
 }
 
 function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): ParsedAssistant | null {
