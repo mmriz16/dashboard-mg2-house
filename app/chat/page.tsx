@@ -272,7 +272,15 @@ export default function DashboardPage() {
 
     const chars = Array.from(text);
     let i = 0;
-    const step = Math.max(1, Math.ceil(chars.length / 220));
+
+    // bikin streaming terasa nyata (gak langsung selesai)
+    const minDurationMs = 1200;
+    const targetCps = 28; // chars per second
+    const naturalDuration = Math.ceil((chars.length / targetCps) * 1000);
+    const totalDuration = Math.max(minDurationMs, naturalDuration);
+    const tickMs = 30;
+    const totalTicks = Math.max(1, Math.ceil(totalDuration / tickMs));
+    const step = Math.max(1, Math.ceil(chars.length / totalTicks));
 
     streamTimerRef.current = setInterval(() => {
       i = Math.min(chars.length, i + step);
