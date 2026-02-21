@@ -95,26 +95,78 @@ function renderAssistantText(text: string) {
     }
 
     const lines = block.split("\n");
-    return (
-      <span key={`blk-${blockIndex}`}>
-        {lines.map((line, index) => {
-          if (line.startsWith("> ")) {
-            return (
-              <blockquote key={`q-${blockIndex}-${index}`} className="my-1 border-l-2 border-white/30 pl-3 text-white/80">
-                {renderInlineDiscordMarkdown(line.slice(2))}
-              </blockquote>
-            );
-          }
+    const rendered: React.ReactNode[] = [];
 
-          return (
-            <span key={`line-${blockIndex}-${index}`}>
-              {renderInlineDiscordMarkdown(line)}
-              {index < lines.length - 1 && <br />}
-            </span>
-          );
-        })}
-      </span>
-    );
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      const ulMatch = line.match(/^(\s*)[-*]\s+(\[[ xX]\]\s+)?(.+)$/);
+      const olMatch = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+
+      if (ulMatch || olMatch) {
+        const isOrdered = Boolean(olMatch);
+        const startIndent = (ulMatch ? ulMatch[1] : olMatch?.[1] || "").length;
+
+        const items: Array<{ indent: number; content: string; checked?: boolean }> = [];
+        let j = i;
+        while (j < lines.length) {
+          const mUl = lines[j].match(/^(\s*)[-*]\s+(\[[ xX]\]\s+)?(.+)$/);
+          const mOl = lines[j].match(/^(\s*)(\d+)\.\s+(.+)$/);
+          const m = isOrdered ? mOl : mUl;
+          if (!m) break;
+
+          const indent = (m[1] || "").length;
+          if (indent < startIndent) break;
+
+          if (isOrdered && mOl) {
+            items.push({ indent, content: mOl[3] });
+          } else if (mUl) {
+            const checkbox = mUl[2]?.trim();
+            items.push({
+              indent,
+              content: mUl[3],
+              checked: checkbox ? checkbox.toLowerCase() === "[x]" : undefined,
+            });
+          }
+          j++;
+        }
+
+        const ListTag = (isOrdered ? "ol" : "ul") as "ol" | "ul";
+        rendered.push(
+          <ListTag key={`list-${blockIndex}-${i}`} className={`my-1 ml-5 ${isOrdered ? "list-decimal" : "list-disc"}`}>
+            {items.map((it, idx) => (
+              <li key={`li-${blockIndex}-${i}-${idx}`} style={{ marginLeft: `${Math.max(0, it.indent - startIndent) * 0.5}rem` }}>
+                {typeof it.checked === "boolean" ? (
+                  <span className={it.checked ? "text-emerald-300" : "text-white/60"}>{it.checked ? "☑" : "☐"} </span>
+                ) : null}
+                {renderInlineDiscordMarkdown(it.content)}
+              </li>
+            ))}
+          </ListTag>
+        );
+
+        i = j - 1;
+        continue;
+      }
+
+      if (line.startsWith("> ")) {
+        rendered.push(
+          <blockquote key={`q-${blockIndex}-${i}`} className="my-1 border-l-2 border-white/30 pl-3 text-white/80">
+            {renderInlineDiscordMarkdown(line.slice(2))}
+          </blockquote>
+        );
+        continue;
+      }
+
+      rendered.push(
+        <span key={`line-${blockIndex}-${i}`}>
+          {renderInlineDiscordMarkdown(line)}
+          {i < lines.length - 1 && <br />}
+        </span>
+      );
+    }
+
+    return <span key={`blk-${blockIndex}`}>{rendered}</span>;
   });
 }
 
