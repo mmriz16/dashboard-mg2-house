@@ -69,18 +69,28 @@ function formatUsageLabel(entry: SessionEntry, sessionStartTs?: number): string 
   const pct = Math.min(100, Math.max(0, Math.round((total / ctx) * 100)));
   if (!sessionStartTs) return `${pct}%`;
 
-  const elapsedMs = Math.max(0, Date.now() - sessionStartTs);
-  const h = Math.floor(elapsedMs / 3600000);
-  const m = Math.floor((elapsedMs % 3600000) / 60000);
-  const elapsed = `${h}h ${m}m`;
+  const resetHours = Number(process.env.OPENCLAW_CONTEXT_RESET_HOURS || "6");
+  const cycleMs = (Number.isFinite(resetHours) && resetHours > 0 ? resetHours : 6) * 3600000;
 
-  const resetAt = new Date(sessionStartTs).toLocaleTimeString("en-US", {
+  const now = Date.now();
+  const elapsedSinceStart = Math.max(0, now - sessionStartTs);
+  const untilResetMs = cycleMs - (elapsedSinceStart % cycleMs);
+
+  const rh = Math.floor(untilResetMs / 3600000);
+  const rm = Math.floor((untilResetMs % 3600000) / 60000);
+  const remaining = `${rh}h ${rm}m`;
+
+  const cyclesPassed = Math.floor(elapsedSinceStart / cycleMs);
+  const nextResetAt = sessionStartTs + (cyclesPassed + 1) * cycleMs;
+  const tz = process.env.OPENCLAW_USER_TIMEZONE || "Asia/Jakarta";
+  const resetAt = new Date(nextResetAt).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
+    timeZone: tz,
   });
 
-  return `${pct}% - ${elapsed} (${resetAt})`;
+  return `${pct}% - ${remaining} (${resetAt})`;
 }
 
 function findLatestAssistantMessage(sessionFilePath: string, afterTs: number, entry: SessionEntry): ParsedAssistant | null {
