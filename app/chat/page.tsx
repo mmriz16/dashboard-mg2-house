@@ -29,24 +29,93 @@ function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string
   return baseClass;
 }
 
-function renderInlineMarkdown(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+function renderInlineDiscordMarkdown(text: string) {
+  const tokenRegex = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\|\|[^|]+\|\|)/g;
+  const parts = text.split(tokenRegex).filter((p) => p !== "");
+
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={`b-${index}`}>{part.slice(2, -2)}</strong>;
     }
+    if (part.startsWith("__") && part.endsWith("__")) {
+      return <u key={`u-${index}`}>{part.slice(2, -2)}</u>;
+    }
+    if (part.startsWith("~~") && part.endsWith("~~")) {
+      return <s key={`s-${index}`}>{part.slice(2, -2)}</s>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code key={`c-${index}`} className="rounded bg-white/10 px-1 py-0.5 text-[0.9em]">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith("||") && part.endsWith("||")) {
+      return (
+        <span key={`sp-${index}`} className="rounded bg-white/10 px-1 text-white/20 hover:text-white transition-colors">
+          {part.slice(2, -2)}
+        </span>
+      );
+    }
+    if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
+      const match = part.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (match) {
+        return (
+          <a
+            key={`l-${index}`}
+            href={match[2]}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sky-300 underline underline-offset-2"
+          >
+            {match[1]}
+          </a>
+        );
+      }
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={`i-${index}`}>{part.slice(1, -1)}</em>;
+    }
+
     return <span key={`t-${index}`}>{part}</span>;
   });
 }
 
 function renderAssistantText(text: string) {
-  const lines = text.split("\n");
-  return lines.map((line, index) => (
-    <span key={`line-${index}`}>
-      {renderInlineMarkdown(line)}
-      {index < lines.length - 1 && <br />}
-    </span>
-  ));
+  const blocks = text.split(/```([\s\S]*?)```/g);
+
+  return blocks.map((block, blockIndex) => {
+    const isCodeBlock = blockIndex % 2 === 1;
+    if (isCodeBlock) {
+      return (
+        <pre key={`pre-${blockIndex}`} className="my-2 overflow-x-auto rounded-md bg-black/40 p-3 text-xs">
+          <code>{block}</code>
+        </pre>
+      );
+    }
+
+    const lines = block.split("\n");
+    return (
+      <span key={`blk-${blockIndex}`}>
+        {lines.map((line, index) => {
+          if (line.startsWith("> ")) {
+            return (
+              <blockquote key={`q-${blockIndex}-${index}`} className="my-1 border-l-2 border-white/30 pl-3 text-white/80">
+                {renderInlineDiscordMarkdown(line.slice(2))}
+              </blockquote>
+            );
+          }
+
+          return (
+            <span key={`line-${blockIndex}-${index}`}>
+              {renderInlineDiscordMarkdown(line)}
+              {index < lines.length - 1 && <br />}
+            </span>
+          );
+        })}
+      </span>
+    );
+  });
 }
 
 function getOrCreateSessionKey() {
