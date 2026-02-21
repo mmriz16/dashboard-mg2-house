@@ -19,6 +19,24 @@ type ChatMessage = {
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
+const STAR_PARTICLES = [
+  { x: 12, y: 22, s: 2, o: 0.4, d: 0 },
+  { x: 20, y: 34, s: 1.5, o: 0.3, d: 0.4 },
+  { x: 27, y: 18, s: 2.5, o: 0.45, d: 1.2 },
+  { x: 35, y: 40, s: 1.5, o: 0.35, d: 0.7 },
+  { x: 43, y: 24, s: 2, o: 0.35, d: 1.5 },
+  { x: 52, y: 30, s: 1.5, o: 0.28, d: 2.2 },
+  { x: 60, y: 20, s: 2.5, o: 0.48, d: 0.9 },
+  { x: 68, y: 36, s: 1.5, o: 0.32, d: 1.8 },
+  { x: 76, y: 22, s: 2, o: 0.36, d: 2.6 },
+  { x: 84, y: 33, s: 1.5, o: 0.3, d: 1.1 },
+  { x: 16, y: 54, s: 1.5, o: 0.28, d: 1.6 },
+  { x: 29, y: 62, s: 2, o: 0.4, d: 0.5 },
+  { x: 41, y: 56, s: 1.5, o: 0.3, d: 2.1 },
+  { x: 54, y: 64, s: 2.2, o: 0.42, d: 1.4 },
+  { x: 66, y: 58, s: 1.7, o: 0.32, d: 2.7 },
+  { x: 78, y: 63, s: 2, o: 0.38, d: 1.9 },
+];
 
 function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
   const compact = text.replace(/\s+/g, " ");
@@ -223,6 +241,7 @@ export default function DashboardPage() {
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -480,88 +499,124 @@ export default function DashboardPage() {
           <h1>Topbar</h1>
         </div>
         <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
-          <div
-            className={`flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4 ${chatMessages.length <= 2 ? "justify-end" : ""}`}
-          >
-            {chatMessages.map((msg, index) => {
-              let showTime = true;
-              if (index > 0) {
-                const prevMsg = chatMessages[index - 1];
-                const currentMinute = Math.floor(msg.timestamp / 60000);
-                const prevMinute = Math.floor(prevMsg.timestamp / 60000);
-                if (currentMinute === prevMinute && msg.sender === prevMsg.sender) {
-                  showTime = false;
+          {isEmptyState ? (
+            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+              <style jsx>{`
+                @keyframes starFloat {
+                  0%, 100% { transform: translateY(0px) scale(1); opacity: var(--o); }
+                  50% { transform: translateY(-6px) scale(1.15); opacity: calc(var(--o) + 0.25); }
                 }
-              }
+              `}</style>
+              <div className="pointer-events-none absolute inset-0">
+                {STAR_PARTICLES.map((p, i) => (
+                  <span
+                    key={`star-${i}`}
+                    className="absolute rounded-full bg-white"
+                    style={{
+                      left: `${p.x}%`,
+                      top: `${p.y}%`,
+                      width: `${p.s}px`,
+                      height: `${p.s}px`,
+                      opacity: p.o,
+                      animation: `starFloat ${3.8 + (i % 4) * 0.7}s ease-in-out infinite`,
+                      animationDelay: `-${p.d}s`,
+                      // @ts-expect-error css var for animation opacity
+                      "--o": p.o,
+                    }}
+                  />
+                ))}
+              </div>
 
-              return (
-                <div key={msg.id} className="w-full flex justify-center">
-                  <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                    {msg.sender === "user" ? (
-                      <ChatUsersCard timestamp={msg.timestamp} showTime={showTime}>
-                        {msg.content}
-                      </ChatUsersCard>
-                    ) : (
-                      (() => {
-                        const meta = getModelMeta(msg.modelId || latestAgentModelId);
-                        const usageLabel = msg.usageLabel || latestUsageLabel;
+              <div className="w-full max-w-5xl z-10">
+                <TextEditor onSubmit={handleSendMessage} />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                className={`flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4 ${chatMessages.length <= 2 ? "justify-end" : ""}`}
+              >
+                {chatMessages.map((msg, index) => {
+                  let showTime = true;
+                  if (index > 0) {
+                    const prevMsg = chatMessages[index - 1];
+                    const currentMinute = Math.floor(msg.timestamp / 60000);
+                    const prevMinute = Math.floor(prevMsg.timestamp / 60000);
+                    if (currentMinute === prevMinute && msg.sender === prevMsg.sender) {
+                      showTime = false;
+                    }
+                  }
+
+                  return (
+                    <div key={msg.id} className="w-full flex justify-center">
+                      <div className="flex flex-col gap-2.5 w-full max-w-5xl">
+                        {msg.sender === "user" ? (
+                          <ChatUsersCard timestamp={msg.timestamp} showTime={showTime}>
+                            {msg.content}
+                          </ChatUsersCard>
+                        ) : (
+                          (() => {
+                            const meta = getModelMeta(msg.modelId || latestAgentModelId);
+                            const usageLabel = msg.usageLabel || latestUsageLabel;
+                            return (
+                              <ChatCard
+                                name={AGENT_DISPLAY_NAME}
+                                timestamp={msg.timestamp}
+                                showTime={showTime}
+                                modelName={meta.displayName}
+                                modelLogo={meta.logoPath}
+                                usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
+                                modelUsageLabel={usageLabel}
+                              >
+                                <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
+                              </ChatCard>
+                            );
+                          })()
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {isAgentTyping && (
+                  <div className="w-full flex justify-center">
+                    <div className="flex flex-col gap-2.5 w-full max-w-5xl">
+                      {(() => {
+                        const meta = getModelMeta(latestAgentModelId);
                         return (
                           <ChatCard
                             name={AGENT_DISPLAY_NAME}
-                            timestamp={msg.timestamp}
-                            showTime={showTime}
+                            timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
+                            showTime
                             modelName={meta.displayName}
                             modelLogo={meta.logoPath}
-                            usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
-                            modelUsageLabel={usageLabel}
+                            usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
+                            modelUsageLabel={latestUsageLabel}
                           >
-                            <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
+                            <div className="flex gap-1 items-center h-5">
+                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
+                            </div>
                           </ChatCard>
                         );
-                      })()
-                    )}
+                      })()}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                )}
+                <div ref={messagesEndRef} />
+              </div>
 
-            {isAgentTyping && (
+              <div className="pointer-events-none absolute top-6 left-6 right-6 h-24 bg-gradient-to-b from-surface/95 via-surface/55 to-transparent" />
+              <div className="pointer-events-none absolute bottom-[112px] left-6 right-6 h-24 bg-gradient-to-t from-surface/95 via-surface/55 to-transparent" />
+
               <div className="w-full flex justify-center">
                 <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                  {(() => {
-                    const meta = getModelMeta(latestAgentModelId);
-                    return (
-                      <ChatCard
-                        name={AGENT_DISPLAY_NAME}
-                        timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
-                        showTime
-                        modelName={meta.displayName}
-                        modelLogo={meta.logoPath}
-                        usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
-                        modelUsageLabel={latestUsageLabel}
-                      >
-                        <div className="flex gap-1 items-center h-5">
-                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
-                        </div>
-                      </ChatCard>
-                    );
-                  })()}
+                  <TextEditor onSubmit={handleSendMessage} />
                 </div>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="pointer-events-none absolute top-6 left-6 right-6 h-24 bg-gradient-to-b from-surface/95 via-surface/55 to-transparent" />
-          <div className="pointer-events-none absolute bottom-[112px] left-6 right-6 h-24 bg-gradient-to-t from-surface/95 via-surface/55 to-transparent" />
-
-          <div className="w-full flex justify-center">
-            <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-              <TextEditor onSubmit={handleSendMessage} />
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
