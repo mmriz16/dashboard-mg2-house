@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const { isPending } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
+  const [agentModelName, setAgentModelName] = useState("OpenClaw");
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -85,8 +86,11 @@ export default function DashboardPage() {
       clearTimeout(timeout);
 
       try {
-        const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number };
+        const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string };
         const text = payload?.text || "(No reply text)";
+        if (payload?.model) {
+          setAgentModelName(payload.model);
+        }
 
         setChatMessages((prev) => [
           ...prev,
@@ -227,7 +231,7 @@ export default function DashboardPage() {
                         {msg.content}
                       </ChatUsersCard>
                     ) : (
-                      <ChatCard timestamp={msg.timestamp} showTime={showTime}>
+                      <ChatCard timestamp={msg.timestamp} showTime={showTime} modelName={agentModelName}>
                         <div className="max-w-none break-words whitespace-pre-wrap">{msg.content}</div>
                       </ChatCard>
                     )}
@@ -239,7 +243,7 @@ export default function DashboardPage() {
             {isAgentTyping && (
               <div className="w-full flex justify-center">
                 <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                  <ChatCard name="OpenClaw Agent" showTime={false}>
+                  <ChatCard name="OpenClaw Agent" showTime={false} modelName={agentModelName}>
                     <div className="flex gap-1 items-center h-5">
                       <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                       <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>

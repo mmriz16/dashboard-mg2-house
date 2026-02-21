@@ -13,6 +13,7 @@ type SessionEntry = {
 type ParsedAssistant = {
   timestamp: number;
   text: string;
+  model?: string;
 };
 
 type AssistantPart = {
@@ -80,7 +81,8 @@ function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): P
 
       if (!text) continue;
 
-      return { timestamp: ts, text };
+      const model = typeof row?.message?.model === "string" ? row.message.model : undefined;
+      return { timestamp: ts, text, model };
     } catch {
       // ignore invalid line
     }
