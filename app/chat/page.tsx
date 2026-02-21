@@ -29,6 +29,26 @@ function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string
   return baseClass;
 }
 
+function renderInlineMarkdown(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`b-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`t-${index}`}>{part}</span>;
+  });
+}
+
+function renderAssistantText(text: string) {
+  const lines = text.split("\n");
+  return lines.map((line, index) => (
+    <span key={`line-${index}`}>
+      {renderInlineMarkdown(line)}
+      {index < lines.length - 1 && <br />}
+    </span>
+  ));
+}
+
 function getOrCreateSessionKey() {
   const key = "openclaw_webchat_session_key";
   const existing = typeof window !== "undefined" ? localStorage.getItem(key) : null;
@@ -279,10 +299,10 @@ export default function DashboardPage() {
                             showTime={showTime}
                             modelName={meta.displayName}
                             modelLogo={meta.logoPath}
-                            modelClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
+                            usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
                             modelUsageLabel={usageLabel}
                           >
-                            <div className="max-w-none break-words whitespace-pre-wrap">{msg.content}</div>
+                            <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
                           </ChatCard>
                         );
                       })()
@@ -304,7 +324,7 @@ export default function DashboardPage() {
                         showTime
                         modelName={meta.displayName}
                         modelLogo={meta.logoPath}
-                        modelClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
+                        usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
                         modelUsageLabel={latestUsageLabel}
                       >
                         <div className="flex gap-1 items-center h-5">

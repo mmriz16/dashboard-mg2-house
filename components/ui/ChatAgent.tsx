@@ -9,7 +9,7 @@ export const ChatCard = ({
   showTime = true,
   modelName = "OpenClaw",
   modelLogo = "/logos/openclaw.svg",
-  modelClassName = "text-white/60",
+  usageClassName = "text-white/60",
   modelUsageLabel,
 }: {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ export const ChatCard = ({
   showTime?: boolean;
   modelName?: string;
   modelLogo?: string;
-  modelClassName?: string;
+  usageClassName?: string;
   modelUsageLabel?: string;
 }) => {
   const formattedDate =
@@ -57,7 +57,9 @@ export const ChatCard = ({
           <p className="text-white text-sm">&middot;</p>
           <div className="flex gap-1.5 items-center">
             <Image src={modelLogo} alt={`${modelName} logo`} width={14} height={14} className="w-3.5 h-3.5 rounded-sm" />
-            <p className={`text-xs truncate ${modelClassName}`}>{modelUsageLabel ? `${modelName} | ${modelUsageLabel}` : modelName}</p>
+            <p className="text-xs truncate text-white/50">{modelName}</p>
+            {modelUsageLabel && <p className="text-xs text-white">|</p>}
+            {modelUsageLabel && <p className={`text-xs truncate ${usageClassName}`}>{modelUsageLabel}</p>}
           </div>
         </div>
         <div className="w-[700px] text-sm rounded-lg border border-border bg-surface-card p-2.5">{children}</div>
