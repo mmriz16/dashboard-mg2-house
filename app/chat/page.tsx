@@ -220,6 +220,7 @@ export default function DashboardPage() {
   const [pendingAgentTs, setPendingAgentTs] = useState<number | null>(null);
   const pendingAgentTsRef = useRef<number | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 1, sender: "user", content: "Test Message", timestamp: INITIAL_MESSAGE_TIMESTAMP },
@@ -238,8 +239,62 @@ export default function DashboardPage() {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
+      if (streamTimerRef.current) {
+        clearInterval(streamTimerRef.current);
+      }
     };
   }, []);
+
+  const streamAssistantText = (params: {
+    text: string;
+    timestamp: number;
+    modelId?: string;
+    usageLabel?: string;
+  }) => {
+    if (streamTimerRef.current) {
+      clearInterval(streamTimerRef.current);
+    }
+
+    const { text, timestamp, modelId, usageLabel } = params;
+    const messageId = Date.now();
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: messageId,
+        sender: "agent",
+        content: "",
+        timestamp,
+        modelId,
+        usageLabel,
+      },
+    ]);
+
+    const chars = Array.from(text);
+    let i = 0;
+    const step = Math.max(1, Math.ceil(chars.length / 220));
+
+    streamTimerRef.current = setInterval(() => {
+      i = Math.min(chars.length, i + step);
+      const next = chars.slice(0, i).join("");
+
+      setChatMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                content: next,
+              }
+            : m
+        )
+      );
+
+      if (i >= chars.length && streamTimerRef.current) {
+        clearInterval(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
+    }, 24);
+  };
 
   const waitForAgentReply = (sessionKey: string, afterTs: number) => {
     if (eventSourceRef.current) {
@@ -289,17 +344,12 @@ export default function DashboardPage() {
 
         const messageTs = pendingAgentTsRef.current || payload?.timestamp || Date.now();
 
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            sender: "agent",
-            content: text,
-            timestamp: messageTs,
-            modelId,
-            usageLabel,
-          },
-        ]);
+        streamAssistantText({
+          text,
+          timestamp: messageTs,
+          modelId,
+          usageLabel,
+        });
       } catch {
         setChatMessages((prev) => [
           ...prev,
@@ -341,6 +391,11 @@ export default function DashboardPage() {
   const handleSendMessage = async (content: string) => {
     const clean = content?.trim();
     if (!clean) return;
+
+    if (streamTimerRef.current) {
+      clearInterval(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
 
     const sentAt = Date.now();
 
