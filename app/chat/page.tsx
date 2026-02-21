@@ -222,9 +222,7 @@ export default function DashboardPage() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: 1, sender: "user", content: "Test Message", timestamp: INITIAL_MESSAGE_TIMESTAMP },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -482,7 +480,9 @@ export default function DashboardPage() {
           <h1>Topbar</h1>
         </div>
         <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
-          <div className="flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4">
+          <div
+            className={`flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4 ${chatMessages.length <= 2 && !isAgentTyping ? "justify-end" : ""}`}
+          >
             {chatMessages.map((msg, index) => {
               let showTime = true;
               if (index > 0) {
