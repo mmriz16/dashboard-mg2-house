@@ -20,6 +20,17 @@ type ChatMessage = {
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea👾";
 
+function extractOfficialUsageLabel(text: string): string | undefined {
+  const compact = text.replace(/\s+/g, " ");
+  const m = compact.match(/Usage\s*5\s*jam:\s*(\d+)%\s*sisa\s*\([^)]*?(\d+)j\s*(\d+)m\)/i);
+  if (!m) return undefined;
+  const leftPct = Number(m[1]);
+  const h = Number(m[2]);
+  const min = Number(m[3]);
+  if (!Number.isFinite(leftPct) || !Number.isFinite(h) || !Number.isFinite(min)) return undefined;
+  return `${leftPct}% left - ${h}h ${min}m`;
+}
+
 function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string {
   const pct = Number((usageLabel || "").match(/^(\d{1,3})%/)?.[1] || "");
   if (!Number.isFinite(pct)) return baseClass;
@@ -250,7 +261,8 @@ export default function DashboardPage() {
         const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string; usageLabel?: string };
         const text = payload?.text || "(No reply text)";
         const modelId = payload?.model;
-        const usageLabel = payload?.usageLabel;
+        const officialUsageLabel = extractOfficialUsageLabel(text);
+        const usageLabel = officialUsageLabel || payload?.usageLabel;
         if (modelId) {
           setLatestAgentModelId(modelId);
         }

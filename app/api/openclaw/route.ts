@@ -18,6 +18,12 @@ export async function POST(req: Request) {
 
     const resolvedSessionKey = "hook:webchat";
 
+    const trimmed = message.trim();
+    const isStatusCommand = /^\/(usage|status)\b/i.test(trimmed);
+    const bridgedMessage = isStatusCommand
+      ? `Jalankan ${trimmed.startsWith("/") ? trimmed : "/usage"}. Ringkas hasilnya dalam bahasa Indonesia, tetap pertahankan emoji penting (jangan dihapus), dan jaga angka usage/reset persis seperti output aslinya.`
+      : message;
+
     const r = await fetch(OPENCLAW_HOOKS_URL, {
       method: "POST",
       headers: {
@@ -25,7 +31,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${OPENCLAW_HOOKS_TOKEN}`,
       },
       body: JSON.stringify({
-        message,
+        message: bridgedMessage,
         agentId: OPENCLAW_AGENT_ID,
         name: "web-chat",
         wakeMode: "now",
