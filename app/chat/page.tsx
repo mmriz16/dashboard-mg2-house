@@ -18,7 +18,7 @@ type ChatMessage = {
 };
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
-const AGENT_DISPLAY_NAME = "Marsha Lenathea??";
+const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
 
 function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
   const compact = text.replace(/\s+/g, " ");
