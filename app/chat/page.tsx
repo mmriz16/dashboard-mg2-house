@@ -481,7 +481,7 @@ export default function DashboardPage() {
         <div className="flex p-6 bg-surface-card border-b border-border shrink-0">
           <h1>Topbar</h1>
         </div>
-        <div className="flex flex-col p-6 w-full h-full overflow-hidden">
+        <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
           <div className="flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4">
             {chatMessages.map((msg, index) => {
               let showTime = true;
@@ -553,6 +553,10 @@ export default function DashboardPage() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          <div className="pointer-events-none absolute top-6 left-6 right-6 h-16 bg-gradient-to-b from-surface to-transparent" />
+          <div className="pointer-events-none absolute bottom-[112px] left-6 right-6 h-16 bg-gradient-to-t from-surface to-transparent" />
+
           <div className="w-full flex justify-center">
             <div className="flex flex-col gap-2.5 w-full max-w-5xl">
               <TextEditor onSubmit={handleSendMessage} />
