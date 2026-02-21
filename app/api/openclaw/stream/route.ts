@@ -8,12 +8,15 @@ type SessionEntry = {
   sessionFile?: string;
   sessionId?: string;
   updatedAt?: number;
+  totalTokens?: number;
+  contextTokens?: number;
 };
 
 type ParsedAssistant = {
   timestamp: number;
   text: string;
   model?: string;
+  usageLabel?: string;
 };
 
 type AssistantPart = {
@@ -33,7 +36,7 @@ function getSessionsFilePath(): string {
   return path.join(userProfile, ".openclaw", "agents", "main", "sessions", "sessions.json");
 }
 
-function readSessionFileForKey(sessionKey: string): string | null {
+function readSessionInfoForKey(sessionKey: string): { sessionFile: string; entry: SessionEntry } | null {
   const sessionsPath = getSessionsFilePath();
   if (!fs.existsSync(sessionsPath)) return null;
 
@@ -47,20 +50,53 @@ function readSessionFileForKey(sessionKey: string): string | null {
   if (!entry) return null;
 
   if (entry.sessionFile && fs.existsSync(entry.sessionFile)) {
-    return entry.sessionFile;
+    return { sessionFile: entry.sessionFile, entry };
   }
 
   if (entry.sessionId) {
     const fallback = path.join(path.dirname(sessionsPath), `${entry.sessionId}.jsonl`);
-    if (fs.existsSync(fallback)) return fallback;
+    if (fs.existsSync(fallback)) return { sessionFile: fallback, entry };
   }
 
   return null;
 }
 
-function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): ParsedAssistant | null {
+function formatUsageLabel(entry: SessionEntry, sessionStartTs?: number): string | undefined {
+  const total = entry.totalTokens;
+  const ctx = entry.contextTokens;
+  if (!total || !ctx) return undefined;
+
+  const pct = Math.min(100, Math.max(0, Math.round((total / ctx) * 100)));
+  if (!sessionStartTs) return `${pct}%`;
+
+  const elapsedMs = Math.max(0, Date.now() - sessionStartTs);
+  const h = Math.floor(elapsedMs / 3600000);
+  const m = Math.floor((elapsedMs % 3600000) / 60000);
+  const elapsed = `${h}h ${m}m`;
+
+  const resetAt = new Date(sessionStartTs).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return `${pct}% - ${elapsed} (${resetAt})`;
+}
+
+function findLatestAssistantMessage(sessionFilePath: string, afterTs: number, entry: SessionEntry): ParsedAssistant | null {
   const raw = fs.readFileSync(sessionFilePath, "utf-8");
   const lines = raw.split("\n").filter(Boolean);
+
+  let sessionStartTs: number | undefined;
+  if (lines.length > 0) {
+    try {
+      const first = JSON.parse(lines[0]);
+      const ts = Date.parse(first?.timestamp ?? "");
+      if (Number.isFinite(ts)) sessionStartTs = ts;
+    } catch {
+      // ignore
+    }
+  }
 
   for (let i = lines.length - 1; i >= 0; i--) {
     try {
@@ -87,7 +123,8 @@ function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): P
           : typeof row?.model === "string"
             ? row.model
             : undefined;
-      return { timestamp: ts, text, model };
+      const usageLabel = formatUsageLabel(entry, sessionStartTs);
+      return { timestamp: ts, text, model, usageLabel };
     } catch {
       // ignore invalid line
     }
@@ -122,10 +159,10 @@ export async function GET(req: NextRequest) {
 
       timer = setInterval(() => {
         try {
-          const sessionFile = readSessionFileForKey(sessionKey);
-          if (!sessionFile) return;
+          const sessionInfo = readSessionInfoForKey(sessionKey);
+          if (!sessionInfo) return;
 
-          const found = findLatestAssistantMessage(sessionFile, lastSentTs);
+          const found = findLatestAssistantMessage(sessionInfo.sessionFile, lastSentTs, sessionInfo.entry);
           if (!found) return;
 
           lastSentTs = found.timestamp;

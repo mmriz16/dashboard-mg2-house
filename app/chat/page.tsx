@@ -14,6 +14,7 @@ type ChatMessage = {
   content: string;
   timestamp: number;
   modelId?: string;
+  usageLabel?: string;
 };
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [latestAgentModelId, setLatestAgentModelId] = useState<string>("openclaw");
+  const [latestUsageLabel, setLatestUsageLabel] = useState<string>("");
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -88,11 +90,15 @@ export default function DashboardPage() {
       clearTimeout(timeout);
 
       try {
-        const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string };
+        const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string; usageLabel?: string };
         const text = payload?.text || "(No reply text)";
         const modelId = payload?.model;
+        const usageLabel = payload?.usageLabel;
         if (modelId) {
           setLatestAgentModelId(modelId);
+        }
+        if (usageLabel) {
+          setLatestUsageLabel(usageLabel);
         }
 
         setChatMessages((prev) => [
@@ -103,6 +109,7 @@ export default function DashboardPage() {
             content: text,
             timestamp: payload?.timestamp || Date.now(),
             modelId,
+            usageLabel,
           },
         ]);
       } catch {
@@ -244,6 +251,7 @@ export default function DashboardPage() {
                             modelName={meta.displayName}
                             modelLogo={meta.logoPath}
                             modelClassName={meta.badgeClass}
+                            modelUsageLabel={msg.usageLabel || latestUsageLabel}
                           >
                             <div className="max-w-none break-words whitespace-pre-wrap">{msg.content}</div>
                           </ChatCard>
@@ -267,6 +275,7 @@ export default function DashboardPage() {
                         modelName={meta.displayName}
                         modelLogo={meta.logoPath}
                         modelClassName={meta.badgeClass}
+                        modelUsageLabel={latestUsageLabel}
                       >
                         <div className="flex gap-1 items-center h-5">
                           <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
