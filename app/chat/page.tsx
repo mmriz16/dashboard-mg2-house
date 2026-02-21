@@ -481,7 +481,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
           <div
-            className={`flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4 ${chatMessages.length <= 2 && !isAgentTyping ? "justify-end" : ""}`}
+            className={`flex-1 overflow-y-auto flex flex-col gap-1 w-full pr-2 pb-4 ${chatMessages.length <= 2 ? "justify-end" : ""}`}
           >
             {chatMessages.map((msg, index) => {
               let showTime = true;
