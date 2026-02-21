@@ -75,6 +75,7 @@ function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): P
         .filter((part) => part?.type === "text" && typeof part?.text === "string")
         .map((part) => part.text as string)
         .join("\n")
+        .replace(/^\[\[\s*reply_to[^\]]*\]\]\s*/i, "")
         .trim();
 
       if (!text) continue;
