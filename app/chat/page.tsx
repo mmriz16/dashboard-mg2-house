@@ -31,7 +31,9 @@ function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string
 
 function renderInlineDiscordMarkdown(text: string) {
   const tokenRegex = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\|\|[^|]+\|\|)/g;
-  const parts = text.split(tokenRegex).filter((p) => p !== "");
+  const parts = text
+    .split(tokenRegex)
+    .filter((p): p is string => typeof p === "string" && p !== "");
 
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
