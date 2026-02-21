@@ -20,22 +20,22 @@ type ChatMessage = {
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
 const STAR_PARTICLES = [
-  { x: 12, y: 22, s: 2, o: 0.4, d: 0 },
-  { x: 20, y: 34, s: 1.5, o: 0.3, d: 0.4 },
-  { x: 27, y: 18, s: 2.5, o: 0.45, d: 1.2 },
-  { x: 35, y: 40, s: 1.5, o: 0.35, d: 0.7 },
-  { x: 43, y: 24, s: 2, o: 0.35, d: 1.5 },
-  { x: 52, y: 30, s: 1.5, o: 0.28, d: 2.2 },
-  { x: 60, y: 20, s: 2.5, o: 0.48, d: 0.9 },
-  { x: 68, y: 36, s: 1.5, o: 0.32, d: 1.8 },
-  { x: 76, y: 22, s: 2, o: 0.36, d: 2.6 },
-  { x: 84, y: 33, s: 1.5, o: 0.3, d: 1.1 },
-  { x: 16, y: 54, s: 1.5, o: 0.28, d: 1.6 },
-  { x: 29, y: 62, s: 2, o: 0.4, d: 0.5 },
-  { x: 41, y: 56, s: 1.5, o: 0.3, d: 2.1 },
-  { x: 54, y: 64, s: 2.2, o: 0.42, d: 1.4 },
-  { x: 66, y: 58, s: 1.7, o: 0.32, d: 2.7 },
-  { x: 78, y: 63, s: 2, o: 0.38, d: 1.9 },
+  { x: 12, y: 22, s: 2, o: 0.4, d: 0, c: "#dbeafe" },
+  { x: 20, y: 34, s: 1.5, o: 0.3, d: 0.4, c: "#bfdbfe" },
+  { x: 27, y: 18, s: 2.5, o: 0.45, d: 1.2, c: "#e9d5ff" },
+  { x: 35, y: 40, s: 1.5, o: 0.35, d: 0.7, c: "#c4b5fd" },
+  { x: 43, y: 24, s: 2, o: 0.35, d: 1.5, c: "#93c5fd" },
+  { x: 52, y: 30, s: 1.5, o: 0.28, d: 2.2, c: "#a5b4fc" },
+  { x: 60, y: 20, s: 2.5, o: 0.48, d: 0.9, c: "#ddd6fe" },
+  { x: 68, y: 36, s: 1.5, o: 0.32, d: 1.8, c: "#bfdbfe" },
+  { x: 76, y: 22, s: 2, o: 0.36, d: 2.6, c: "#c7d2fe" },
+  { x: 84, y: 33, s: 1.5, o: 0.3, d: 1.1, c: "#dbeafe" },
+  { x: 16, y: 54, s: 1.5, o: 0.28, d: 1.6, c: "#c4b5fd" },
+  { x: 29, y: 62, s: 2, o: 0.4, d: 0.5, c: "#ddd6fe" },
+  { x: 41, y: 56, s: 1.5, o: 0.3, d: 2.1, c: "#bfdbfe" },
+  { x: 54, y: 64, s: 2.2, o: 0.42, d: 1.4, c: "#c7d2fe" },
+  { x: 66, y: 58, s: 1.7, o: 0.32, d: 2.7, c: "#93c5fd" },
+  { x: 78, y: 63, s: 2, o: 0.38, d: 1.9, c: "#ddd6fe" },
 ];
 
 function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
@@ -241,6 +241,7 @@ export default function DashboardPage() {
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
   const scrollToBottom = () => {
@@ -479,6 +480,17 @@ export default function DashboardPage() {
     }
   };
 
+  const handleEmptyMouseMove = (e: { currentTarget: HTMLDivElement; clientX: number; clientY: number }) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    setStarDrift({ x: nx * 10, y: ny * 10 });
+  };
+
+  const handleEmptyMouseLeave = () => {
+    setStarDrift({ x: 0, y: 0 });
+  };
+
   if (isPending) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-surface">
@@ -500,28 +512,45 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
           {isEmptyState ? (
-            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+            <div
+              className="flex-1 relative flex items-center justify-center overflow-hidden"
+              onMouseMove={handleEmptyMouseMove}
+              onMouseLeave={handleEmptyMouseLeave}
+            >
               <style jsx>{`
                 @keyframes starFloat {
-                  0%, 100% { transform: translateY(0px) scale(1); opacity: var(--o); }
-                  50% { transform: translateY(-6px) scale(1.15); opacity: calc(var(--o) + 0.25); }
+                  0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: var(--o); }
+                  50% { transform: translate3d(var(--dx), -8px, 0) scale(1.25); opacity: calc(var(--o) + 0.35); }
+                }
+                @keyframes starPulse {
+                  0%,100% { filter: blur(0px) drop-shadow(0 0 0 rgba(147,197,253,0)); }
+                  50% { filter: blur(0.2px) drop-shadow(0 0 8px rgba(167,139,250,0.7)); }
                 }
               `}</style>
-              <div className="pointer-events-none absolute inset-0">
+
+              <div
+                className="pointer-events-none absolute inset-0 transition-transform duration-300"
+                style={{ transform: `translate(${starDrift.x}px, ${starDrift.y}px)` }}
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.16),transparent_60%)]" />
                 {STAR_PARTICLES.map((p, i) => (
                   <span
                     key={`star-${i}`}
-                    className="absolute rounded-full bg-white"
+                    className="absolute rounded-full"
                     style={{
                       left: `${p.x}%`,
                       top: `${p.y}%`,
                       width: `${p.s}px`,
                       height: `${p.s}px`,
+                      backgroundColor: p.c,
                       opacity: p.o,
-                      animation: `starFloat ${3.8 + (i % 4) * 0.7}s ease-in-out infinite`,
+                      boxShadow: `0 0 ${6 + p.s * 3}px ${p.c}`,
+                      animation: `starFloat ${4 + (i % 5) * 0.75}s ease-in-out infinite, starPulse ${3.2 + (i % 4) * 0.6}s ease-in-out infinite`,
                       animationDelay: `-${p.d}s`,
-                      // @ts-expect-error css var for animation opacity
+                      // @ts-expect-error css vars for animation
                       "--o": p.o,
+                      // @ts-expect-error css vars for animation
+                      "--dx": `${(i % 2 === 0 ? 1 : -1) * (1 + (i % 3))}px`,
                     }}
                   />
                 ))}
