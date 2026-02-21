@@ -81,7 +81,7 @@ function findLatestAssistantMessage(sessionFilePath: string, afterTs: number): P
 
       if (!text) continue;
 
-      const model = typeof row?.message?.model === "string" ? row.message.model : undefined;
+      const model = typeof row?.model === "string" ? row.model : undefined;
       return { timestamp: ts, text, model };
     } catch {
       // ignore invalid line
