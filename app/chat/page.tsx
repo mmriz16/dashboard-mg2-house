@@ -554,8 +554,8 @@ export default function DashboardPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="pointer-events-none absolute top-6 left-6 right-6 h-16 bg-gradient-to-b from-surface to-transparent" />
-          <div className="pointer-events-none absolute bottom-[112px] left-6 right-6 h-16 bg-gradient-to-t from-surface to-transparent" />
+          <div className="pointer-events-none absolute top-6 left-6 right-6 h-24 bg-gradient-to-b from-surface/95 via-surface/55 to-transparent" />
+          <div className="pointer-events-none absolute bottom-[112px] left-6 right-6 h-24 bg-gradient-to-t from-surface/95 via-surface/55 to-transparent" />
 
           <div className="w-full flex justify-center">
             <div className="flex flex-col gap-2.5 w-full max-w-5xl">
