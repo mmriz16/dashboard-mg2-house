@@ -169,7 +169,9 @@ export default function DashboardPage() {
         return;
       }
 
-      waitForAgentReply(res.sessionKey || sessionKey, sentAt - 1000);
+      const serverAcceptedAt = typeof res?.acceptedAt === "number" ? res.acceptedAt : Date.now();
+      // pakai timestamp server (bukan jam browser) supaya filter stream tidak miss reply
+      waitForAgentReply(res.sessionKey || sessionKey, serverAcceptedAt - 5000);
     } catch (error) {
       console.error("Failed to fetch agent reply", error);
       setIsAgentTyping(false);

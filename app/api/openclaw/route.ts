@@ -40,6 +40,7 @@ export async function POST(req: Request) {
         ok: r.ok,
         status: r.status,
         sessionKey: resolvedSessionKey,
+        acceptedAt: Date.now(),
         data,
       },
       { status: r.ok ? 200 : 500 }
