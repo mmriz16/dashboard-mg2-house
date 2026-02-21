@@ -6,12 +6,14 @@ import { ChatUsersCard } from "@/components/ui/ChatUsers";
 import { ChatCard } from "@/components/ui/ChatAgent";
 import { Sidebar } from "@/components/Sidebar";
 import { TextEditor } from "@/components/ui/TextEditor";
+import { getModelMeta } from "@/lib/model-meta";
 
 type ChatMessage = {
   id: number;
   sender: "user" | "agent";
   content: string;
   timestamp: number;
+  modelId?: string;
 };
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
@@ -30,7 +32,7 @@ export default function DashboardPage() {
   const { isPending } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
-  const [agentModelName, setAgentModelName] = useState("OpenClaw");
+  const [latestAgentModelId, setLatestAgentModelId] = useState<string>("openclaw");
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -88,8 +90,9 @@ export default function DashboardPage() {
       try {
         const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string };
         const text = payload?.text || "(No reply text)";
-        if (payload?.model) {
-          setAgentModelName(payload.model);
+        const modelId = payload?.model;
+        if (modelId) {
+          setLatestAgentModelId(modelId);
         }
 
         setChatMessages((prev) => [
@@ -99,6 +102,7 @@ export default function DashboardPage() {
             sender: "agent",
             content: text,
             timestamp: payload?.timestamp || Date.now(),
+            modelId,
           },
         ]);
       } catch {
@@ -231,9 +235,20 @@ export default function DashboardPage() {
                         {msg.content}
                       </ChatUsersCard>
                     ) : (
-                      <ChatCard timestamp={msg.timestamp} showTime={showTime} modelName={agentModelName}>
-                        <div className="max-w-none break-words whitespace-pre-wrap">{msg.content}</div>
-                      </ChatCard>
+                      (() => {
+                        const meta = getModelMeta(msg.modelId || latestAgentModelId);
+                        return (
+                          <ChatCard
+                            timestamp={msg.timestamp}
+                            showTime={showTime}
+                            modelName={meta.displayName}
+                            modelLogo={meta.logoPath}
+                            modelClassName={meta.badgeClass}
+                          >
+                            <div className="max-w-none break-words whitespace-pre-wrap">{msg.content}</div>
+                          </ChatCard>
+                        );
+                      })()
                     )}
                   </div>
                 </div>
@@ -243,13 +258,24 @@ export default function DashboardPage() {
             {isAgentTyping && (
               <div className="w-full flex justify-center">
                 <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                  <ChatCard name="OpenClaw Agent" showTime={false} modelName={agentModelName}>
-                    <div className="flex gap-1 items-center h-5">
-                      <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
-                    </div>
-                  </ChatCard>
+                  {(() => {
+                    const meta = getModelMeta(latestAgentModelId);
+                    return (
+                      <ChatCard
+                        name="OpenClaw Agent"
+                        showTime={false}
+                        modelName={meta.displayName}
+                        modelLogo={meta.logoPath}
+                        modelClassName={meta.badgeClass}
+                      >
+                        <div className="flex gap-1 items-center h-5">
+                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                          <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
+                        </div>
+                      </ChatCard>
+                    );
+                  })()}
                 </div>
               </div>
             )}
