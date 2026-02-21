@@ -6,7 +6,7 @@ const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || "main";
 
 export async function POST(req: Request) {
   try {
-    const { message, sessionKey } = await req.json();
+    const { message } = await req.json();
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "message is required" }, { status: 400 });
@@ -16,10 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "OPENCLAW_HOOKS_TOKEN is missing" }, { status: 500 });
     }
 
-    const resolvedSessionKey =
-      typeof sessionKey === "string" && sessionKey.trim().length > 0
-        ? sessionKey.trim()
-        : "hook:webchat";
+    const resolvedSessionKey = "hook:webchat";
 
     const r = await fetch(OPENCLAW_HOOKS_URL, {
       method: "POST",
@@ -29,7 +26,6 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         message,
-        sessionKey: resolvedSessionKey,
         agentId: OPENCLAW_AGENT_ID,
         name: "web-chat",
         wakeMode: "now",
