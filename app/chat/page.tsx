@@ -21,13 +21,18 @@ const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
 const STAR_COLORS = ["#dbeafe", "#bfdbfe", "#93c5fd", "#c7d2fe", "#ddd6fe", "#c4b5fd", "#a5b4fc"];
 
-const STAR_PARTICLES = Array.from({ length: 88 }, (_, i) => {
-  const x = 4 + ((i * 11.7) % 92);
-  const y = 6 + ((i * 17.3) % 90); // sampai bawah biar ga kosong
-  const s = 1.1 + ((i * 1.37) % 1.6);
-  const o = 0.18 + ((i * 0.19) % 0.34);
-  const d = ((i * 0.53) % 3.2);
-  const c = STAR_COLORS[i % STAR_COLORS.length];
+const noise = (seed: number) => {
+  const v = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return v - Math.floor(v);
+};
+
+const STAR_PARTICLES = Array.from({ length: 96 }, (_, i) => {
+  const x = 3 + noise(i + 1) * 94;
+  const y = 4 + noise(i * 2.17 + 13) * 92;
+  const s = 1.0 + noise(i * 3.11 + 7) * 1.9;
+  const o = 0.16 + noise(i * 1.73 + 19) * 0.42;
+  const d = noise(i * 4.03 + 23) * 3.4;
+  const c = STAR_COLORS[Math.floor(noise(i * 5.71 + 31) * STAR_COLORS.length) % STAR_COLORS.length];
   return { x, y, s, o, d, c };
 });
 
