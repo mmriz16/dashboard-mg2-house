@@ -18,6 +18,7 @@ type ChatMessage = {
 };
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
+const AGENT_DISPLAY_NAME = "Marsha Lenathea👾";
 
 function getOrCreateSessionKey() {
   const key = "openclaw_webchat_session_key";
@@ -35,6 +36,8 @@ export default function DashboardPage() {
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [latestAgentModelId, setLatestAgentModelId] = useState<string>("openclaw");
   const [latestUsageLabel, setLatestUsageLabel] = useState<string>("");
+  const [pendingAgentTs, setPendingAgentTs] = useState<number | null>(null);
+  const pendingAgentTsRef = useRef<number | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -73,6 +76,8 @@ export default function DashboardPage() {
       resolved = true;
       es.close();
       setIsAgentTyping(false);
+      setPendingAgentTs(null);
+      pendingAgentTsRef.current = null;
       setChatMessages((prev) => [
         ...prev,
         {
@@ -101,13 +106,15 @@ export default function DashboardPage() {
           setLatestUsageLabel(usageLabel);
         }
 
+        const messageTs = pendingAgentTsRef.current || payload?.timestamp || Date.now();
+
         setChatMessages((prev) => [
           ...prev,
           {
             id: Date.now(),
             sender: "agent",
             content: text,
-            timestamp: payload?.timestamp || Date.now(),
+            timestamp: messageTs,
             modelId,
             usageLabel,
           },
@@ -125,6 +132,8 @@ export default function DashboardPage() {
       }
 
       setIsAgentTyping(false);
+      setPendingAgentTs(null);
+      pendingAgentTsRef.current = null;
       es.close();
     });
 
@@ -133,6 +142,8 @@ export default function DashboardPage() {
       resolved = true;
       clearTimeout(timeout);
       setIsAgentTyping(false);
+      setPendingAgentTs(null);
+      pendingAgentTsRef.current = null;
       es.close();
       setChatMessages((prev) => [
         ...prev,
@@ -157,6 +168,9 @@ export default function DashboardPage() {
       { id: sentAt, sender: "user", content: clean, timestamp: sentAt },
     ]);
 
+    const typingStartedAt = Date.now();
+    pendingAgentTsRef.current = typingStartedAt;
+    setPendingAgentTs(typingStartedAt);
     setIsAgentTyping(true);
 
     try {
@@ -172,6 +186,8 @@ export default function DashboardPage() {
 
       if (!response.ok || !res?.ok) {
         setIsAgentTyping(false);
+        setPendingAgentTs(null);
+        pendingAgentTsRef.current = null;
         setChatMessages((prev) => [
           ...prev,
           {
@@ -190,6 +206,8 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Failed to fetch agent reply", error);
       setIsAgentTyping(false);
+      setPendingAgentTs(null);
+      pendingAgentTsRef.current = null;
       setChatMessages((prev) => [
         ...prev,
         {
@@ -246,6 +264,7 @@ export default function DashboardPage() {
                         const meta = getModelMeta(msg.modelId || latestAgentModelId);
                         return (
                           <ChatCard
+                            name={AGENT_DISPLAY_NAME}
                             timestamp={msg.timestamp}
                             showTime={showTime}
                             modelName={meta.displayName}
@@ -270,8 +289,9 @@ export default function DashboardPage() {
                     const meta = getModelMeta(latestAgentModelId);
                     return (
                       <ChatCard
-                        name="OpenClaw Agent"
-                        showTime={false}
+                        name={AGENT_DISPLAY_NAME}
+                        timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
+                        showTime
                         modelName={meta.displayName}
                         modelLogo={meta.logoPath}
                         modelClassName={meta.badgeClass}
