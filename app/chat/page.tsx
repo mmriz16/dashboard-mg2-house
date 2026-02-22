@@ -341,11 +341,11 @@ export default function DashboardPage() {
         {
           id: Date.now(),
           sender: "agent",
-          content: "Masih diproses. Coba kirim lagi sebentar, atau cek log OpenClaw untuk progress.",
+          content: "Prosesnya lebih lama dari biasanya. Kalau masih belum muncul, cek log OpenClaw ya.",
           timestamp: Date.now(),
         },
       ]);
-    }, 90000);
+    }, 180000);
 
     es.addEventListener("message", (event) => {
       if (resolved) return;

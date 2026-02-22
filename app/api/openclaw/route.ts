@@ -10,6 +10,7 @@ const OPENCLAW_HOOKS_URL =
 const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || "";
 const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || "main";
 const OPENCLAW_ALLOW_REQUEST_SESSION_KEY = process.env.OPENCLAW_ALLOW_REQUEST_SESSION_KEY === "true";
+const OPENCLAW_DEFAULT_SESSION_KEY = process.env.OPENCLAW_DEFAULT_SESSION_KEY || "hook:ingress";
 
 export async function POST(req: Request) {
   try {
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     const resolvedSessionKey =
       typeof sessionKey === "string" && sessionKey.trim().length > 0
         ? sessionKey.trim()
-        : `hook:webchat:${crypto.randomUUID()}`;
+        : OPENCLAW_DEFAULT_SESSION_KEY;
 
     const trimmed = message.trim();
     const isStatusCommand = /^\/(usage|status)\b/i.test(trimmed);
