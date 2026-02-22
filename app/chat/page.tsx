@@ -237,6 +237,7 @@ export default function DashboardPage() {
   const pendingAgentTsRef = useRef<number | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamSeqRef = useRef(0);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
@@ -319,6 +320,9 @@ export default function DashboardPage() {
   };
 
   const waitForAgentReply = (sessionKey: string, afterTs: number) => {
+    const streamSeq = streamSeqRef.current + 1;
+    streamSeqRef.current = streamSeq;
+
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
@@ -330,7 +334,7 @@ export default function DashboardPage() {
 
     let resolved = false;
     const timeout = setTimeout(() => {
-      if (resolved) return;
+      if (resolved || streamSeq !== streamSeqRef.current) return;
       resolved = true;
       es.close();
       setIsAgentTyping(false);
@@ -348,7 +352,7 @@ export default function DashboardPage() {
     }, 180000);
 
     es.addEventListener("message", (event) => {
-      if (resolved) return;
+      if (resolved || streamSeq !== streamSeqRef.current) return;
       resolved = true;
       clearTimeout(timeout);
 
@@ -391,7 +395,7 @@ export default function DashboardPage() {
     });
 
     es.addEventListener("error", () => {
-      if (resolved) return;
+      if (resolved || streamSeq !== streamSeqRef.current) return;
       resolved = true;
       clearTimeout(timeout);
       setIsAgentTyping(false);

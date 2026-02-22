@@ -24,10 +24,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "OPENCLAW_HOOKS_TOKEN is missing" }, { status: 500 });
     }
 
-    const resolvedSessionKey =
+    const requestedSessionKey =
       typeof sessionKey === "string" && sessionKey.trim().length > 0
         ? sessionKey.trim()
         : OPENCLAW_DEFAULT_SESSION_KEY;
+
+    // If request-level session keys are disabled, hooks will run on defaultSessionKey.
+    const effectiveSessionKey = OPENCLAW_ALLOW_REQUEST_SESSION_KEY
+      ? requestedSessionKey
+      : OPENCLAW_DEFAULT_SESSION_KEY;
 
     const trimmed = message.trim();
     const isStatusCommand = /^\/(usage|status)\b/i.test(trimmed);
@@ -45,7 +50,7 @@ export async function POST(req: Request) {
 
     // /hooks/agent rejects request sessionKey by default unless server enables hooks.allowRequestSessionKey=true
     if (OPENCLAW_ALLOW_REQUEST_SESSION_KEY) {
-      hookPayload.sessionKey = resolvedSessionKey;
+      hookPayload.sessionKey = effectiveSessionKey;
     }
 
     let r = await fetch(OPENCLAW_HOOKS_URL, {
@@ -85,7 +90,7 @@ export async function POST(req: Request) {
       {
         ok: r.ok,
         status: r.status,
-        sessionKey: upstreamSessionKey || resolvedSessionKey,
+        sessionKey: upstreamSessionKey || effectiveSessionKey,
         acceptedAt: Date.now(),
         hooksUrl: OPENCLAW_HOOKS_URL,
         data,
