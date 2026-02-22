@@ -9,6 +9,7 @@ const OPENCLAW_HOOKS_URL =
   `${OPENCLAW_BASE_URL.replace(/\/+$/, "")}/hooks/agent`;
 const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || "";
 const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || "main";
+const OPENCLAW_ALLOW_REQUEST_SESSION_KEY = process.env.OPENCLAW_ALLOW_REQUEST_SESSION_KEY === "true";
 
 export async function POST(req: Request) {
   try {
@@ -33,21 +34,40 @@ export async function POST(req: Request) {
       ? `Jalankan ${trimmed.startsWith("/") ? trimmed : "/usage"}. Ringkas hasilnya dalam bahasa Indonesia, tetap pertahankan emoji penting (jangan dihapus), dan jaga angka usage/reset persis seperti output aslinya.`
       : message;
 
-    const r = await fetch(OPENCLAW_HOOKS_URL, {
+    const hookPayload: Record<string, unknown> = {
+      message: bridgedMessage,
+      agentId: OPENCLAW_AGENT_ID,
+      name: "web-chat",
+      wakeMode: "now",
+      deliver: false,
+    };
+
+    // /hooks/agent rejects request sessionKey by default unless server enables hooks.allowRequestSessionKey=true
+    if (OPENCLAW_ALLOW_REQUEST_SESSION_KEY) {
+      hookPayload.sessionKey = resolvedSessionKey;
+    }
+
+    let r = await fetch(OPENCLAW_HOOKS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${OPENCLAW_HOOKS_TOKEN}`,
       },
-      body: JSON.stringify({
-        message: bridgedMessage,
-        sessionKey: resolvedSessionKey,
-        agentId: OPENCLAW_AGENT_ID,
-        name: "web-chat",
-        wakeMode: "now",
-        deliver: false,
-      }),
+      body: JSON.stringify(hookPayload),
     });
+
+    // Safety retry: if server rejects request sessionKey policy, retry once without sessionKey.
+    if (!r.ok && r.status === 400 && Object.prototype.hasOwnProperty.call(hookPayload, "sessionKey")) {
+      delete hookPayload.sessionKey;
+      r = await fetch(OPENCLAW_HOOKS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENCLAW_HOOKS_TOKEN}`,
+        },
+        body: JSON.stringify(hookPayload),
+      });
+    }
 
     const rawText = await r.text();
     let data: unknown = {};
@@ -57,11 +77,14 @@ export async function POST(req: Request) {
       data = { raw: rawText };
     }
 
+    const dataObj = (data && typeof data === "object") ? (data as Record<string, unknown>) : null;
+    const upstreamSessionKey = typeof dataObj?.sessionKey === "string" ? dataObj.sessionKey : undefined;
+
     return NextResponse.json(
       {
         ok: r.ok,
         status: r.status,
-        sessionKey: resolvedSessionKey,
+        sessionKey: upstreamSessionKey || resolvedSessionKey,
         acceptedAt: Date.now(),
         hooksUrl: OPENCLAW_HOOKS_URL,
         data,
