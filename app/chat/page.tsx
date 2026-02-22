@@ -291,8 +291,8 @@ export default function DashboardPage() {
     let i = 0;
 
     // word-by-word streaming
-    const minDurationMs = 1300;
-    const targetWps = 4.2; // words/chunks per second
+    const minDurationMs = 450;
+    const targetWps = 9.5; // words/chunks per second
     const naturalDuration = Math.ceil((chunks.length / targetWps) * 1000);
     const totalDuration = Math.max(minDurationMs, naturalDuration);
     const tickMs = Math.max(24, Math.floor(totalDuration / Math.max(1, chunks.length)));

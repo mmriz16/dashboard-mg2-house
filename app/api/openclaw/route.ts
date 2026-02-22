@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 
 const OPENCLAW_BASE_URL =
@@ -10,7 +12,36 @@ const OPENCLAW_HOOKS_URL =
 const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || "";
 const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || "main";
 const OPENCLAW_ALLOW_REQUEST_SESSION_KEY = process.env.OPENCLAW_ALLOW_REQUEST_SESSION_KEY === "true";
-const OPENCLAW_DEFAULT_SESSION_KEY = process.env.OPENCLAW_DEFAULT_SESSION_KEY || "hook:ingress";
+const OPENCLAW_DEFAULT_SESSION_KEY = process.env.OPENCLAW_DEFAULT_SESSION_KEY || "hook:webchat";
+
+function detectLatestHookSessionKey(): string | undefined {
+  try {
+    const userProfile = process.env.USERPROFILE;
+    if (!userProfile) return undefined;
+
+    const sessionsPath = path.join(userProfile, ".openclaw", "agents", OPENCLAW_AGENT_ID, "sessions", "sessions.json");
+    if (!fs.existsSync(sessionsPath)) return undefined;
+
+    const raw = fs.readFileSync(sessionsPath, "utf-8");
+    const parsed = JSON.parse(raw) as Record<string, { updatedAt?: number }>;
+
+    let bestKey: string | undefined;
+    let bestUpdatedAt = -1;
+
+    for (const [k, v] of Object.entries(parsed)) {
+      if (!k.startsWith(`agent:${OPENCLAW_AGENT_ID}:hook:`)) continue;
+      const ts = typeof v?.updatedAt === "number" ? v.updatedAt : 0;
+      if (ts > bestUpdatedAt) {
+        bestUpdatedAt = ts;
+        bestKey = k.replace(`agent:${OPENCLAW_AGENT_ID}:`, "");
+      }
+    }
+
+    return bestKey;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -29,10 +60,11 @@ export async function POST(req: Request) {
         ? sessionKey.trim()
         : OPENCLAW_DEFAULT_SESSION_KEY;
 
-    // If request-level session keys are disabled, hooks will run on defaultSessionKey.
+    // If request-level session keys are disabled, hooks run on server-side default session.
+    // We try to mirror it so stream subscribes to the right session.
     const effectiveSessionKey = OPENCLAW_ALLOW_REQUEST_SESSION_KEY
       ? requestedSessionKey
-      : OPENCLAW_DEFAULT_SESSION_KEY;
+      : detectLatestHookSessionKey() || OPENCLAW_DEFAULT_SESSION_KEY;
 
     const trimmed = message.trim();
     const isStatusCommand = /^\/(usage|status)\b/i.test(trimmed);

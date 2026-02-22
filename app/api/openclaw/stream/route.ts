@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
         } catch (err) {
           send("error", { error: err instanceof Error ? err.message : String(err) });
         }
-      }, 1000);
+      }, 400);
 
       keepAlive = setInterval(() => {
         send("ping", { t: Date.now() });
