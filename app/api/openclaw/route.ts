@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     const isStatusCommand = /^\/(usage|status)\b/i.test(trimmed);
     const bridgedMessage = isStatusCommand
       ? `Jalankan ${trimmed.startsWith("/") ? trimmed : "/usage"}. Ringkas hasilnya dalam bahasa Indonesia, tetap pertahankan emoji penting (jangan dihapus), dan jaga angka usage/reset persis seperti output aslinya.`
-      : message;
+      : `Jawab sebagai asisten chat biasa yang natural dan langsung membantu. Jangan membalas seperti status webhook/ack teknis kecuali user memang minta debug webhook.\n\nPesan user:\n${message}`;
 
     const hookPayload: Record<string, unknown> = {
       message: bridgedMessage,
