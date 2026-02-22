@@ -230,6 +230,8 @@ function getOrCreateSessionKey() {
 export default function DashboardPage() {
   const { isPending } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [latestAgentModelId, setLatestAgentModelId] = useState<string>("openclaw");
   const [latestUsageLabel, setLatestUsageLabel] = useState<string>("");
@@ -243,13 +245,26 @@ export default function DashboardPage() {
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = messagesContainerRef.current;
+    if (!el) {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+      return;
+    }
+    el.scrollTo({ top: el.scrollHeight, behavior });
   };
 
   useEffect(() => {
+    if (!shouldAutoScrollRef.current) return;
     scrollToBottom();
   }, [chatMessages]);
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < 120;
+  };
 
   useEffect(() => {
     return () => {
@@ -423,6 +438,7 @@ export default function DashboardPage() {
       streamTimerRef.current = null;
     }
 
+    shouldAutoScrollRef.current = true;
     const sentAt = Date.now();
 
     setChatMessages((prev) => [
@@ -585,6 +601,8 @@ export default function DashboardPage() {
           ) : (
             <>
               <div
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
                 className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-end gap-1 w-full pr-2 pb-4"
               >
                 {chatMessages.map((msg, index) => {
