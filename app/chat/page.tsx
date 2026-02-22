@@ -524,11 +524,11 @@ export default function DashboardPage() {
     <div className="flex h-screen w-full bg-surface overflow-hidden">
       <Sidebar />
 
-      <div className="flex flex-1 flex-col h-screen">
+      <div className="flex flex-1 flex-col h-screen min-h-0">
         <div className="flex p-6 bg-surface-card border-b border-border shrink-0">
           <h1>Topbar</h1>
         </div>
-        <div className="flex flex-col p-6 w-full h-full overflow-hidden relative">
+        <div className="flex flex-col p-6 w-full h-full min-h-0 overflow-hidden relative">
           {isEmptyState ? (
             <div
               className="flex-1 relative flex items-center justify-center overflow-hidden"
@@ -603,8 +603,9 @@ export default function DashboardPage() {
               <div
                 ref={messagesContainerRef}
                 onScroll={handleMessagesScroll}
-                className="flex-1 min-h-0 overflow-y-auto flex flex-col justify-end gap-1 w-full pr-2 pb-4"
+                className="flex-1 min-h-0 overflow-y-auto w-full pr-2 pb-4"
               >
+                <div className="min-h-full flex flex-col justify-end gap-1">
                 {chatMessages.map((msg, index) => {
                   let showTime = true;
                   if (index > 0) {
@@ -674,6 +675,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <div ref={messagesEndRef} />
+                </div>
               </div>
 
               <div className="pointer-events-none absolute top-6 left-6 right-6 h-24 bg-gradient-to-b from-surface/95 via-surface/55 to-transparent" />
