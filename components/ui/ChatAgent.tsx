@@ -47,8 +47,8 @@ export const ChatCard = ({
         className="w-10 h-10 object-cover rounded-md shrink-0"
       />
 
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-1.5 items-center w-[800px] font-mono">
+      <div className="flex flex-col gap-2 min-w-0 flex-1 max-w-[800px]">
+        <div className="flex gap-1.5 items-center min-w-0 font-mono flex-wrap">
           <p className="text-white text-sm">{name}</p>
           <p className="text-white text-sm">&middot;</p>
           <p className="text-white/50 text-xs" suppressHydrationWarning>
@@ -62,7 +62,7 @@ export const ChatCard = ({
             {modelUsageLabel && <p className={`text-xs truncate ${usageClassName}`}>{modelUsageLabel}</p>}
           </div>
         </div>
-        <div className="w-[700px] text-sm rounded-lg border border-border bg-surface-card p-2.5">{children}</div>
+        <div className="w-fit max-w-[700px] text-sm rounded-lg border border-border bg-surface-card p-2.5">{children}</div>
       </div>
     </div>
   );

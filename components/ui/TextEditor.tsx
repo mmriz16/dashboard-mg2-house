@@ -76,7 +76,8 @@ export function TextEditor({ onSubmit }: TextEditorProps) {
       return;
     }
 
-    onSubmit(currentEditor.getHTML());
+    const plainText = currentEditor.getText().trim();
+    onSubmit(plainText);
     currentEditor.commands.clearContent();
     setSlashQuery(null);
   };
