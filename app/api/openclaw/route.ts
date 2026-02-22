@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 
-const OPENCLAW_HOOKS_URL = process.env.OPENCLAW_HOOKS_URL || "http://127.0.0.1:18789/hooks/agent";
-const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || "";
+const OPENCLAW_BASE_URL =
+  process.env.OPENCLAW_BASE_URL ||
+  process.env.OPENCLAW_GATEWAY_URL ||
+  "http://127.0.0.1:18789";
+const OPENCLAW_HOOKS_URL =
+  process.env.OPENCLAW_HOOKS_URL ||
+  `${OPENCLAW_BASE_URL.replace(/\/+$/, "")}/hooks/agent`;
+const OPENCLAW_HOOKS_TOKEN = process.env.OPENCLAW_HOOKS_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || "";
 const OPENCLAW_AGENT_ID = process.env.OPENCLAW_AGENT_ID || "main";
 
 export async function POST(req: Request) {
@@ -43,7 +49,13 @@ export async function POST(req: Request) {
       }),
     });
 
-    const data = await r.json().catch(() => ({}));
+    const rawText = await r.text();
+    let data: unknown = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = { raw: rawText };
+    }
 
     return NextResponse.json(
       {
@@ -51,9 +63,10 @@ export async function POST(req: Request) {
         status: r.status,
         sessionKey: resolvedSessionKey,
         acceptedAt: Date.now(),
+        hooksUrl: OPENCLAW_HOOKS_URL,
         data,
       },
-      { status: r.ok ? 200 : 500 }
+      { status: r.ok ? 200 : r.status || 500 }
     );
   } catch (e: unknown) {
     console.error("OpenClaw webhook error:", e);
