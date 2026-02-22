@@ -135,7 +135,7 @@ export function TextEditor({ onSubmit }: TextEditorProps) {
     },
     editorProps: {
       attributes: {
-        class: "w-full focus:outline-none min-h-[68px] text-white text-sm font-ibm-plex-mono",
+        class: "w-full focus:outline-none min-h-[68px] max-h-[100px] overflow-y-auto text-white text-sm font-ibm-plex-mono",
         spellcheck: "false",
       },
     },
