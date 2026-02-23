@@ -32,14 +32,19 @@ export async function GET(req: Request) {
     [userId, conversationKey]
   );
 
-  const messages = result.rows.map((row, idx) => ({
-    id: row.ts + idx,
-    sender: row.sender,
-    content: row.content,
-    timestamp: row.ts,
-    modelId: row.model_id || undefined,
-    usageLabel: row.usage_label || undefined,
-  }));
+  const messages = result.rows.map((row, idx) => {
+    const ts = Number(row.ts);
+    const safeTs = Number.isFinite(ts) ? ts : Date.now();
+
+    return {
+      id: safeTs + idx,
+      sender: row.sender,
+      content: row.content,
+      timestamp: safeTs,
+      modelId: row.model_id || undefined,
+      usageLabel: row.usage_label || undefined,
+    };
+  });
 
   return NextResponse.json({ messages });
 }
