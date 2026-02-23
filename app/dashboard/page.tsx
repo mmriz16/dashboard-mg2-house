@@ -13,7 +13,7 @@ export default function DashboardPage() {
     const { data: session, isPending } = authClient.useSession();
     const cached = getCachedSession();
     const [isGatewayOnline, setIsGatewayOnline] = useState(true);
-    const [regionLabel, setRegionLabel] = useState("INDONESIA-NORTH-(BATAM)");
+    const [regionLabel, setRegionLabel] = useState("");
     const REGION_CACHE_KEY = "mg2_region_label";
 
     useEffect(() => {

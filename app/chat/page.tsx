@@ -246,7 +246,7 @@ export default function DashboardPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
-  const [regionLabel, setRegionLabel] = useState("INDONESIA-NORTH-(BATAM)");
+  const [regionLabel, setRegionLabel] = useState("");
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
   const REGION_CACHE_KEY = "mg2_region_label";
 

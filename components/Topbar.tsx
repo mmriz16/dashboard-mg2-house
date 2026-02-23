@@ -37,7 +37,7 @@ function MenuIcon() {
 export function Topbar({
   title,
   subtitle,
-  regionLabel = "INDONESIA-NORTH-(BATAM)",
+  regionLabel,
   systemStatusLabel = "System Online",
   systemOnline = true,
   onMenuClick,
@@ -46,6 +46,8 @@ export function Topbar({
 }: TopbarProps) {
   const breadcrumbTitle = title.toUpperCase();
   const breadcrumbPrefix = subtitle?.toUpperCase();
+  const normalizedRegion = regionLabel?.trim();
+  const isLocating = !normalizedRegion;
 
   return (
     <header className="flex items-center gap-2 md:gap-[10px] px-3 py-3 md:px-6 md:py-3 bg-surface-card border-b border-border shrink-0">
@@ -111,9 +113,16 @@ export function Topbar({
         </div>
 
         <div className="hidden sm:flex items-center gap-2 md:gap-[10px] rounded-[8px] border border-border bg-surface px-3 py-2.5 shrink-0">
-          <span className="font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/70 whitespace-nowrap">
-            {regionLabel}
-          </span>
+          {isLocating ? (
+            <span className="inline-flex items-center gap-2 font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/60 whitespace-nowrap">
+              <span className="size-2 rounded-full border border-white/40 border-t-white animate-spin" aria-hidden="true" />
+              Locating...
+            </span>
+          ) : (
+            <span className="font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/70 whitespace-nowrap">
+              {normalizedRegion}
+            </span>
+          )
           <div className="h-4 w-px bg-border" aria-hidden="true" />
           <div className="flex items-center gap-1">
             <span
