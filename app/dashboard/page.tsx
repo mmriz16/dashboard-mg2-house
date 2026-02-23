@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { authClient, getCachedSession, clearCachedSession } from "@/lib/auth-client";
@@ -11,6 +12,29 @@ export default function DashboardPage() {
     const router = useRouter();
     const { data: session, isPending } = authClient.useSession();
     const cached = getCachedSession();
+    const [isGatewayOnline, setIsGatewayOnline] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const checkHealth = async () => {
+            try {
+                const r = await fetch("/api/openclaw/health", { cache: "no-store" });
+                if (cancelled) return;
+                setIsGatewayOnline(r.ok);
+            } catch {
+                if (!cancelled) setIsGatewayOnline(false);
+            }
+        };
+
+        checkHealth();
+        const id = setInterval(checkHealth, 15000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, []);
 
     // Use cached session while fetching fresh data
     const displaySession = session || cached;
@@ -39,7 +63,12 @@ export default function DashboardPage() {
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col">
-                <Topbar title="Dashboard" subtitle="Overview and key metrics" />
+                <Topbar
+                    title="Dashboard"
+                    subtitle="Overview and key metrics"
+                    systemOnline={isGatewayOnline}
+                    systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
+                />
                 <div className="flex flex-col gap-4 p-6">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-2xl font-manrope font-medium text-white">Welcome back, Kaozi!</h1>

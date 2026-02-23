@@ -245,6 +245,7 @@ export default function DashboardPage() {
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
+  const [isGatewayOnline, setIsGatewayOnline] = useState(true);
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -276,6 +277,28 @@ export default function DashboardPage() {
       if (streamTimerRef.current) {
         clearInterval(streamTimerRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkHealth = async () => {
+      try {
+        const r = await fetch("/api/openclaw/health", { cache: "no-store" });
+        if (cancelled) return;
+        setIsGatewayOnline(r.ok);
+      } catch {
+        if (!cancelled) setIsGatewayOnline(false);
+      }
+    };
+
+    checkHealth();
+    const id = setInterval(checkHealth, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
     };
   }, []);
 
@@ -527,7 +550,12 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col h-screen min-h-0">
-        <Topbar title="Chat" subtitle="Real-time assistant conversation" />
+        <Topbar
+          title="Chat"
+          subtitle="Real-time assistant conversation"
+          systemOnline={isGatewayOnline}
+          systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
+        />
         <div className="flex flex-col p-6 w-full h-full min-h-0 overflow-hidden relative">
           {isEmptyState ? (
             <div
