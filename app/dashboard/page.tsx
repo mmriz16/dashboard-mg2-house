@@ -13,6 +13,7 @@ export default function DashboardPage() {
     const { data: session, isPending } = authClient.useSession();
     const cached = getCachedSession();
     const [isGatewayOnline, setIsGatewayOnline] = useState(true);
+    const [regionLabel, setRegionLabel] = useState("INDONESIA-NORTH-(BATAM)");
 
     useEffect(() => {
         let cancelled = false;
@@ -27,12 +28,28 @@ export default function DashboardPage() {
             }
         };
 
+        const checkLocation = async () => {
+            try {
+                const r = await fetch("/api/openclaw/location", { cache: "no-store" });
+                const data = (await r.json()) as { regionLabel?: string };
+                if (cancelled) return;
+                if (typeof data?.regionLabel === "string" && data.regionLabel.trim()) {
+                    setRegionLabel(data.regionLabel.trim());
+                }
+            } catch {
+                // keep fallback label
+            }
+        };
+
         checkHealth();
-        const id = setInterval(checkHealth, 15000);
+        checkLocation();
+        const healthId = setInterval(checkHealth, 15000);
+        const locationId = setInterval(checkLocation, 300000);
 
         return () => {
             cancelled = true;
-            clearInterval(id);
+            clearInterval(healthId);
+            clearInterval(locationId);
         };
     }, []);
 
@@ -66,6 +83,7 @@ export default function DashboardPage() {
                 <Topbar
                     title="Dashboard"
                     subtitle="Overview and key metrics"
+                    regionLabel={regionLabel}
                     systemOnline={isGatewayOnline}
                     systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
                 />

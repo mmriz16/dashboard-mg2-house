@@ -246,6 +246,7 @@ export default function DashboardPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
+  const [regionLabel, setRegionLabel] = useState("INDONESIA-NORTH-(BATAM)");
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -293,12 +294,28 @@ export default function DashboardPage() {
       }
     };
 
+    const checkLocation = async () => {
+      try {
+        const r = await fetch("/api/openclaw/location", { cache: "no-store" });
+        const data = (await r.json()) as { regionLabel?: string };
+        if (cancelled) return;
+        if (typeof data?.regionLabel === "string" && data.regionLabel.trim()) {
+          setRegionLabel(data.regionLabel.trim());
+        }
+      } catch {
+        // keep fallback label
+      }
+    };
+
     checkHealth();
-    const id = setInterval(checkHealth, 15000);
+    checkLocation();
+    const healthId = setInterval(checkHealth, 15000);
+    const locationId = setInterval(checkLocation, 300000);
 
     return () => {
       cancelled = true;
-      clearInterval(id);
+      clearInterval(healthId);
+      clearInterval(locationId);
     };
   }, []);
 
@@ -553,6 +570,7 @@ export default function DashboardPage() {
         <Topbar
           title="Chat"
           subtitle="Real-time assistant conversation"
+          regionLabel={regionLabel}
           systemOnline={isGatewayOnline}
           systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
         />
