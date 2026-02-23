@@ -19,7 +19,7 @@ type ChatMessage = {
   usageLabel?: string;
 };
 
-const CHAT_CACHE_KEY = "mg2_chat_messages";
+const CHAT_CONVERSATION_KEY = "default";
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
@@ -221,16 +221,6 @@ function renderAssistantText(text: string) {
   });
 }
 
-function getOrCreateSessionKey() {
-  const key = "openclaw_webchat_session_key";
-  const existing = typeof window !== "undefined" ? localStorage.getItem(key) : null;
-  if (existing) return existing;
-
-  const generated = `hook:webchat:${crypto.randomUUID()}`;
-  localStorage.setItem(key, generated);
-  return generated;
-}
-
 export default function DashboardPage() {
   const { isPending } = authClient.useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -244,13 +234,52 @@ export default function DashboardPage() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamSeqRef = useRef(0);
+  const sessionKeyRef = useRef<string | null>(null);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
-  const [regionLabel, setRegionLabel] = useState("");
-  const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
   const REGION_CACHE_KEY = "mg2_region_label";
+  const [regionLabel, setRegionLabel] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return localStorage.getItem(REGION_CACHE_KEY)?.trim() || "";
+    } catch {
+      return "";
+    }
+  });
+  const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
+
+  const ensureServerSessionKey = async () => {
+    if (sessionKeyRef.current) return sessionKeyRef.current;
+
+    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" });
+    const data = (await r.json()) as { sessionKey?: string };
+    if (!r.ok || !data?.sessionKey) {
+      throw new Error("Failed to resolve chat session key");
+    }
+
+    sessionKeyRef.current = data.sessionKey;
+    return data.sessionKey;
+  };
+
+  const persistMessage = async (message: {
+    sender: "user" | "agent";
+    content: string;
+    timestamp: number;
+    modelId?: string;
+    usageLabel?: string;
+  }) => {
+    try {
+      await fetch("/api/chat/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...message, key: CHAT_CONVERSATION_KEY }),
+      });
+    } catch {
+      // non-blocking
+    }
+  };
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = messagesContainerRef.current;
@@ -285,31 +314,42 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const cachedRegion = localStorage.getItem(REGION_CACHE_KEY);
-      if (cachedRegion?.trim()) {
-        setRegionLabel(cachedRegion.trim());
-      }
+    if (isPending) return;
 
-      const cachedMessages = localStorage.getItem(CHAT_CACHE_KEY);
-      if (cachedMessages) {
-        const parsed = JSON.parse(cachedMessages) as ChatMessage[];
-        if (Array.isArray(parsed)) {
-          setChatMessages(parsed);
+    let cancelled = false;
+
+    const bootstrapChat = async () => {
+      try {
+        const [sessionRes, messagesRes] = await Promise.all([
+          fetch(`/api/chat/session?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" }),
+          fetch(`/api/chat/messages?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" }),
+        ]);
+
+        const sessionData = (await sessionRes.json()) as { sessionKey?: string };
+        const messagesData = (await messagesRes.json()) as { messages?: ChatMessage[] };
+
+        if (cancelled) return;
+
+        if (sessionRes.ok && sessionData?.sessionKey) {
+          sessionKeyRef.current = sessionData.sessionKey;
         }
-      }
-    } catch {
-      // ignore cache read error
-    }
-  }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(chatMessages));
-    } catch {
-      // ignore cache write error
-    }
-  }, [chatMessages]);
+        if (messagesRes.ok && Array.isArray(messagesData?.messages)) {
+          setChatMessages(messagesData.messages);
+        }
+      } catch {
+        // keep graceful fallback
+      }
+    };
+
+    bootstrapChat();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPending]);
+
+  // region cache is initialized in useState lazy initializer.
 
   useEffect(() => {
     let cancelled = false;
@@ -457,6 +497,14 @@ export default function DashboardPage() {
       if (i >= chunks.length && streamTimerRef.current) {
         clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
+
+        void persistMessage({
+          sender: "agent",
+          content: text,
+          timestamp,
+          modelId,
+          usageLabel,
+        });
       }
     }, tickMs);
   };
@@ -568,10 +616,13 @@ export default function DashboardPage() {
     shouldAutoScrollRef.current = true;
     const sentAt = Date.now();
 
-    setChatMessages((prev) => [
-      ...prev,
-      { id: sentAt, sender: "user", content: clean, timestamp: sentAt },
-    ]);
+    const userMessage: ChatMessage = { id: sentAt, sender: "user", content: clean, timestamp: sentAt };
+    setChatMessages((prev) => [...prev, userMessage]);
+    void persistMessage({
+      sender: "user",
+      content: clean,
+      timestamp: sentAt,
+    });
 
     const typingStartedAt = Date.now();
     pendingAgentTsRef.current = typingStartedAt;
@@ -579,7 +630,7 @@ export default function DashboardPage() {
     setIsAgentTyping(true);
 
     try {
-      const sessionKey = getOrCreateSessionKey();
+      const sessionKey = await ensureServerSessionKey();
 
       const response = await fetch("/api/openclaw", {
         method: "POST",
