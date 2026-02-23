@@ -842,6 +842,7 @@ export default function DashboardPage() {
                               modelLogo={meta.logoPath}
                               usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
                               modelUsageLabel={latestUsageLabel}
+                              hideHeader
                             >
                               <div className="flex gap-1 items-center h-5">
                                 <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>

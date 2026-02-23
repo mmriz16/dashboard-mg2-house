@@ -11,6 +11,7 @@ export const ChatCard = ({
   modelLogo = "/logos/openclaw.svg",
   usageClassName = "text-white/60",
   modelUsageLabel,
+  hideHeader = false,
 }: {
   children: React.ReactNode;
   name?: string;
@@ -21,6 +22,7 @@ export const ChatCard = ({
   modelLogo?: string;
   usageClassName?: string;
   modelUsageLabel?: string;
+  hideHeader?: boolean;
 }) => {
   const formattedDate =
     showTime && timestamp
@@ -39,29 +41,33 @@ export const ChatCard = ({
 
   return (
     <div className="flex gap-3">
-      <Image
-        src={avatarUrl}
-        alt={`${name} profile`}
-        width={40}
-        height={40}
-        className="w-10 h-10 object-cover rounded-md shrink-0"
-      />
+      {!hideHeader && (
+        <Image
+          src={avatarUrl}
+          alt={`${name} profile`}
+          width={40}
+          height={40}
+          className="w-10 h-10 object-cover rounded-md shrink-0"
+        />
+      )}
 
       <div className="flex flex-col gap-2 min-w-0 flex-1 max-w-[800px]">
-        <div className="flex gap-1.5 items-center min-w-0 font-mono flex-wrap">
-          <p className="text-white text-sm">{name}</p>
-          <p className="text-white text-sm">&middot;</p>
-          <p className="text-white/50 text-xs" suppressHydrationWarning>
-            {formattedDate}
-          </p>
-          <p className="text-white text-sm">&middot;</p>
-          <div className="flex gap-1.5 items-center">
-            <Image src={modelLogo} alt={`${modelName} logo`} width={14} height={14} className="w-3.5 h-3.5 rounded-sm" />
-            <p className="text-xs truncate text-white/50">{modelName}</p>
-            {modelUsageLabel && <p className="text-xs text-white">|</p>}
-            {modelUsageLabel && <p className={`text-xs truncate ${usageClassName}`}>{modelUsageLabel}</p>}
+        {!hideHeader && (
+          <div className="flex gap-1.5 items-center min-w-0 font-mono flex-wrap">
+            <p className="text-white text-sm">{name}</p>
+            <p className="text-white text-sm">&middot;</p>
+            <p className="text-white/50 text-xs" suppressHydrationWarning>
+              {formattedDate}
+            </p>
+            <p className="text-white text-sm">&middot;</p>
+            <div className="flex gap-1.5 items-center">
+              <Image src={modelLogo} alt={`${modelName} logo`} width={14} height={14} className="w-3.5 h-3.5 rounded-sm" />
+              <p className="text-xs truncate text-white/50">{modelName}</p>
+              {modelUsageLabel && <p className="text-xs text-white">|</p>}
+              {modelUsageLabel && <p className={`text-xs truncate ${usageClassName}`}>{modelUsageLabel}</p>}
+            </div>
           </div>
-        </div>
+        )}
         <div className="w-fit max-w-[700px] text-sm rounded-lg border border-border bg-surface-card p-2.5">{children}</div>
       </div>
     </div>
