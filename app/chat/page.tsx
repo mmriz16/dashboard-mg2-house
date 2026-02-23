@@ -19,6 +19,8 @@ type ChatMessage = {
   usageLabel?: string;
 };
 
+const CHAT_CACHE_KEY = "mg2_chat_messages";
+
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
 const STAR_COLORS = ["#dbeafe", "#bfdbfe", "#93c5fd", "#c7d2fe", "#ddd6fe", "#c4b5fd", "#a5b4fc"];
@@ -284,14 +286,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     try {
-      const cached = localStorage.getItem(REGION_CACHE_KEY);
-      if (cached?.trim()) {
-        setRegionLabel(cached.trim());
+      const cachedRegion = localStorage.getItem(REGION_CACHE_KEY);
+      if (cachedRegion?.trim()) {
+        setRegionLabel(cachedRegion.trim());
+      }
+
+      const cachedMessages = localStorage.getItem(CHAT_CACHE_KEY);
+      if (cachedMessages) {
+        const parsed = JSON.parse(cachedMessages) as ChatMessage[];
+        if (Array.isArray(parsed)) {
+          setChatMessages(parsed);
+        }
       }
     } catch {
       // ignore cache read error
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(chatMessages));
+    } catch {
+      // ignore cache write error
+    }
+  }, [chatMessages]);
 
   useEffect(() => {
     let cancelled = false;
