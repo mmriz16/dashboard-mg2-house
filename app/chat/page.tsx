@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useRef, useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { ChatUsersCard } from "@/components/ui/ChatUsers";
@@ -7,6 +8,7 @@ import { ChatCard } from "@/components/ui/ChatAgent";
 import { Sidebar } from "@/components/Sidebar";
 import { TextEditor } from "@/components/ui/TextEditor";
 import { getModelMeta } from "@/lib/model-meta";
+import { Topbar } from "@/components/Topbar";
 
 type ChatMessage = {
   id: number;
@@ -320,9 +322,9 @@ export default function DashboardPage() {
         prev.map((m) =>
           m.id === messageId
             ? {
-                ...m,
-                content: next,
-              }
+              ...m,
+              content: next,
+            }
             : m
         )
       );
@@ -525,9 +527,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col h-screen min-h-0">
-        <div className="flex p-6 bg-surface-card border-b border-border shrink-0">
-          <h1>Topbar</h1>
-        </div>
+        <Topbar title="Chat" subtitle="Real-time assistant conversation" />
         <div className="flex flex-col p-6 w-full h-full min-h-0 overflow-hidden relative">
           {isEmptyState ? (
             <div
@@ -575,11 +575,9 @@ export default function DashboardPage() {
                         boxShadow: `0 0 ${4 + p.s * 1.8}px ${p.c}`,
                         animation: `starFloat ${4 + (i % 5) * 0.75}s ease-in-out infinite, starPulse ${3.2 + (i % 4) * 0.6}s ease-in-out infinite`,
                         animationDelay: `-${p.d}s`,
-                        // @ts-expect-error css vars for animation
                         "--o": p.o,
-                        // @ts-expect-error css vars for animation
                         "--dx": `${(i % 2 === 0 ? 1 : -1) * (1 + (i % 3))}px`,
-                      }}
+                      } as CSSProperties & Record<"--o" | "--dx", string | number>}
                     />
                   ))}
                 </div>
@@ -606,75 +604,75 @@ export default function DashboardPage() {
                 className="flex-1 min-h-0 overflow-y-auto w-full pr-2 pb-4"
               >
                 <div className="min-h-full flex flex-col justify-end gap-1">
-                {chatMessages.map((msg, index) => {
-                  let showTime = true;
-                  if (index > 0) {
-                    const prevMsg = chatMessages[index - 1];
-                    const currentMinute = Math.floor(msg.timestamp / 60000);
-                    const prevMinute = Math.floor(prevMsg.timestamp / 60000);
-                    if (currentMinute === prevMinute && msg.sender === prevMsg.sender) {
-                      showTime = false;
+                  {chatMessages.map((msg, index) => {
+                    let showTime = true;
+                    if (index > 0) {
+                      const prevMsg = chatMessages[index - 1];
+                      const currentMinute = Math.floor(msg.timestamp / 60000);
+                      const prevMinute = Math.floor(prevMsg.timestamp / 60000);
+                      if (currentMinute === prevMinute && msg.sender === prevMsg.sender) {
+                        showTime = false;
+                      }
                     }
-                  }
 
-                  return (
-                    <div key={msg.id} className="w-full flex justify-center">
+                    return (
+                      <div key={msg.id} className="w-full flex justify-center">
+                        <div className="flex flex-col gap-2.5 w-full max-w-5xl">
+                          {msg.sender === "user" ? (
+                            <ChatUsersCard timestamp={msg.timestamp} showTime={showTime}>
+                              {msg.content}
+                            </ChatUsersCard>
+                          ) : (
+                            (() => {
+                              const meta = getModelMeta(msg.modelId || latestAgentModelId);
+                              const usageLabel = msg.usageLabel || latestUsageLabel;
+                              return (
+                                <ChatCard
+                                  name={AGENT_DISPLAY_NAME}
+                                  timestamp={msg.timestamp}
+                                  showTime={showTime}
+                                  modelName={meta.displayName}
+                                  modelLogo={meta.logoPath}
+                                  usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
+                                  modelUsageLabel={usageLabel}
+                                >
+                                  <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
+                                </ChatCard>
+                              );
+                            })()
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {isAgentTyping && (
+                    <div className="w-full flex justify-center">
                       <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                        {msg.sender === "user" ? (
-                          <ChatUsersCard timestamp={msg.timestamp} showTime={showTime}>
-                            {msg.content}
-                          </ChatUsersCard>
-                        ) : (
-                          (() => {
-                            const meta = getModelMeta(msg.modelId || latestAgentModelId);
-                            const usageLabel = msg.usageLabel || latestUsageLabel;
-                            return (
-                              <ChatCard
-                                name={AGENT_DISPLAY_NAME}
-                                timestamp={msg.timestamp}
-                                showTime={showTime}
-                                modelName={meta.displayName}
-                                modelLogo={meta.logoPath}
-                                usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
-                                modelUsageLabel={usageLabel}
-                              >
-                                <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
-                              </ChatCard>
-                            );
-                          })()
-                        )}
+                        {(() => {
+                          const meta = getModelMeta(latestAgentModelId);
+                          return (
+                            <ChatCard
+                              name={AGENT_DISPLAY_NAME}
+                              timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
+                              showTime
+                              modelName={meta.displayName}
+                              modelLogo={meta.logoPath}
+                              usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
+                              modelUsageLabel={latestUsageLabel}
+                            >
+                              <div className="flex gap-1 items-center h-5">
+                                <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
+                              </div>
+                            </ChatCard>
+                          );
+                        })()}
                       </div>
                     </div>
-                  );
-                })}
-
-                {isAgentTyping && (
-                  <div className="w-full flex justify-center">
-                    <div className="flex flex-col gap-2.5 w-full max-w-5xl">
-                      {(() => {
-                        const meta = getModelMeta(latestAgentModelId);
-                        return (
-                          <ChatCard
-                            name={AGENT_DISPLAY_NAME}
-                            timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
-                            showTime
-                            modelName={meta.displayName}
-                            modelLogo={meta.logoPath}
-                            usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
-                            modelUsageLabel={latestUsageLabel}
-                          >
-                            <div className="flex gap-1 items-center h-5">
-                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce"></div>
-                            </div>
-                          </ChatCard>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
@@ -693,5 +691,4 @@ export default function DashboardPage() {
     </div>
   );
 }
-
 

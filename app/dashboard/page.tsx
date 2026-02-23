@@ -1,12 +1,11 @@
 "use client";
 
-import { MenuItem } from "@/components/MenuItem";
-import { SubMenuItem } from "@/components/SubMenuItem";
-import { ProfileCard } from "@/components/ProfileCard";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { authClient, getCachedSession, clearCachedSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { Sidebar } from "@/components/Sidebar";
+import { Topbar } from "@/components/Topbar";
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -36,44 +35,11 @@ export default function DashboardPage() {
     return (
         <div className="flex h-screen w-full bg-surface">
             {/* Sidebar */}
-            <div className="flex flex-row">
-                <div className="flex p-6 w-[300px] gap-4 flex-col h-screen border-r bg-surface-card border-border">
-                    <h1 className="text-2xl font-manrope font-medium text-white">MG2 House</h1>
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">control</h1>
-                        <div className="flex flex-col gap-0.5">
-                            <MenuItem variant="primary" label="Virtual Office" />
-                            <MenuItem variant="secondary" label="Notification" badgeText="99+" badgeStyle="warning" />
-                            <MenuItem variant="secondary" label="Dashboard" />
-                            <MenuItem variant="secondary" label="Chat" />
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">Working Area</h1>
-                        <div className="flex flex-col gap-0.5">
-                            <MenuItem variant="secondary" label="Virtual Office" />
-                            <div className="flex flex-col gap-0">
-                                <SubMenuItem variant="secondary" label="Advanced AI Model Training" />
-                                <SubMenuItem variant="secondary" label="Thorough AI Safety Testing" />
-                                <SubMenuItem variant="secondary" label="Comprehensive AI Ethics Review" badgeText="99+" badgeStyle="default" />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="mt-auto w-full">
-                        <ProfileCard
-                            className="w-full"
-                            name="Miftakhul Rizky"
-                            role="Owner"
-                        />
-                    </div>
-                </div>
-            </div>
+            <Sidebar />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col">
-                <div className="flex p-6 bg-surface-card border-b border-border">
-                    <h1>Topbar</h1>
-                </div>
+                <Topbar title="Dashboard" subtitle="Overview and key metrics" />
                 <div className="flex flex-col gap-4 p-6">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-2xl font-manrope font-medium text-white">Welcome back, Kaozi!</h1>
