@@ -248,6 +248,7 @@ export default function DashboardPage() {
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
   const [regionLabel, setRegionLabel] = useState("INDONESIA-NORTH-(BATAM)");
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
+  const REGION_CACHE_KEY = "mg2_region_label";
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = messagesContainerRef.current;
@@ -279,6 +280,17 @@ export default function DashboardPage() {
         clearInterval(streamTimerRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(REGION_CACHE_KEY);
+      if (cached?.trim()) {
+        setRegionLabel(cached.trim());
+      }
+    } catch {
+      // ignore cache read error
+    }
   }, []);
 
   useEffect(() => {
@@ -331,6 +343,11 @@ export default function DashboardPage() {
 
             if (!cancelled && label) {
               setRegionLabel(label);
+              try {
+                localStorage.setItem(REGION_CACHE_KEY, label);
+              } catch {
+                // ignore cache write error
+              }
               return;
             }
           }
@@ -344,7 +361,13 @@ export default function DashboardPage() {
         const data = (await r.json()) as { regionLabel?: string };
         if (cancelled) return;
         if (typeof data?.regionLabel === "string" && data.regionLabel.trim()) {
-          setRegionLabel(data.regionLabel.trim());
+          const normalized = data.regionLabel.trim();
+          setRegionLabel(normalized);
+          try {
+            localStorage.setItem(REGION_CACHE_KEY, normalized);
+          } catch {
+            // ignore cache write error
+          }
         }
       } catch {
         // keep fallback label
