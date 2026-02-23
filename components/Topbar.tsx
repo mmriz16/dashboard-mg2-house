@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { MG2Icon } from "@/components/ui/MG2Icon";
 
 type TopbarProps = {
   title: string;
@@ -12,44 +13,6 @@ type TopbarProps = {
   onSearchClick?: () => void;
   onNotificationsClick?: () => void;
 };
-
-function SearchIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="6.75" />
-      <line x1="20" y1="20" x2="16.4" y2="16.4" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
 
 function MenuIcon() {
   return (
@@ -114,18 +77,26 @@ export function Topbar({
             type="button"
             aria-label="Search"
             onClick={onSearchClick}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-white/70 hover:bg-surface-card hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="group inline-flex h-8 w-8 items-center justify-center rounded-[6px] hover:bg-surface-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
           >
-            <SearchIcon />
+            <MG2Icon
+              name="search"
+              size={13}
+              className="opacity-70 group-hover:opacity-100 transition-opacity"
+            />
           </button>
           <div className="mx-[2px] h-4 w-px bg-border" aria-hidden="true" />
           <button
             type="button"
             aria-label="Notifications"
             onClick={onNotificationsClick}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-white/70 hover:bg-surface-card hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="group inline-flex h-8 w-8 items-center justify-center rounded-[6px] hover:bg-surface-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
           >
-            <BellIcon />
+            <MG2Icon
+              name="notifications"
+              size={13}
+              className="opacity-70 group-hover:opacity-100 transition-opacity"
+            />
           </button>
         </div>
 
@@ -140,7 +111,7 @@ export function Topbar({
         </div>
 
         <div className="hidden sm:flex items-center gap-2 md:gap-[10px] rounded-[8px] border border-border bg-surface px-3 py-2.5 shrink-0">
-          <span className="font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/70 truncate max-w-[26ch]">
+          <span className="font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/70 whitespace-nowrap">
             {regionLabel}
           </span>
           <div className="h-4 w-px bg-border" aria-hidden="true" />
