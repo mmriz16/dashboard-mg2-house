@@ -30,6 +30,50 @@ export default function DashboardPage() {
 
         const checkLocation = async () => {
             try {
+                if (typeof navigator !== "undefined" && navigator.geolocation) {
+                    const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 120000,
+                        })
+                    );
+
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    const geo = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+                        { cache: "no-store" }
+                    );
+
+                    if (geo.ok) {
+                        const data = (await geo.json()) as {
+                            address?: {
+                                city?: string;
+                                town?: string;
+                                village?: string;
+                                state?: string;
+                                country?: string;
+                            };
+                        };
+
+                        const city = data.address?.city || data.address?.town || data.address?.village;
+                        const state = data.address?.state;
+                        const country = data.address?.country;
+                        const label = [city, state, country].filter(Boolean).join(" • ").toUpperCase();
+
+                        if (!cancelled && label) {
+                            setRegionLabel(label);
+                            return;
+                        }
+                    }
+                }
+            } catch {
+                // fallback below
+            }
+
+            try {
                 const r = await fetch("/api/openclaw/location", { cache: "no-store" });
                 const data = (await r.json()) as { regionLabel?: string };
                 if (cancelled) return;
