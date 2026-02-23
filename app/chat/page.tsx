@@ -20,6 +20,7 @@ type ChatMessage = {
 };
 
 const CHAT_CONVERSATION_KEY = "default";
+const CHAT_CACHE_KEY = `mg2_chat_messages:${CHAT_CONVERSATION_KEY}`;
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
@@ -236,7 +237,17 @@ export default function DashboardPage() {
   const streamSeqRef = useRef(0);
   const sessionKeyRef = useRef<string | null>(null);
 
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(CHAT_CACHE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ChatMessage[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
   const REGION_CACHE_KEY = "mg2_region_label";
@@ -312,6 +323,14 @@ export default function DashboardPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(chatMessages));
+    } catch {
+      // ignore cache write error
+    }
+  }, [chatMessages]);
 
   useEffect(() => {
     if (isPending) return;
