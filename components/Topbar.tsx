@@ -129,7 +129,7 @@ export function Topbar({
           </button>
         </div>
 
-        <div className="sm:hidden flex items-center gap-1 rounded-[8px] border border-border bg-surface px-2 py-1.5 shrink-0">
+        <div className="sm:hidden flex h-10 items-center gap-1 rounded-[8px] border border-border bg-surface px-3 shrink-0">
           <span
             className={`size-1 rounded-full ${systemOnline ? "bg-green shadow-[0_0_8px_rgba(0,201,80,0.8)]" : "bg-red shadow-[0_0_8px_rgba(251,44,54,0.7)]"}`}
             aria-hidden="true"
