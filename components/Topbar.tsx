@@ -122,7 +122,7 @@ export function Topbar({
             <span className="font-ibm-plex-mono text-[11px] md:text-[12px] uppercase text-white/70 whitespace-nowrap">
               {normalizedRegion}
             </span>
-          )
+          )}
           <div className="h-4 w-px bg-border" aria-hidden="true" />
           <div className="flex items-center gap-1">
             <span
