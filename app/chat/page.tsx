@@ -23,8 +23,16 @@ type ChatMessage = {
 const DRAFT_CHAT_KEY = "__draft__";
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
-const AGENT_DISPLAY_NAME = "Openclaw Agent\u{1F47E}";
-const STAR_COLORS = ["#dbeafe", "#bfdbfe", "#93c5fd", "#c7d2fe", "#ddd6fe", "#c4b5fd", "#a5b4fc"];
+const AGENT_DISPLAY_NAME = "Openclaw Agent🦞";
+const STAR_COLORS = [
+  "#dbeafe",
+  "#bfdbfe",
+  "#93c5fd",
+  "#c7d2fe",
+  "#ddd6fe",
+  "#c4b5fd",
+  "#a5b4fc",
+];
 
 const noise = (seed: number) => {
   const v = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
@@ -37,13 +45,20 @@ const STAR_PARTICLES = Array.from({ length: 96 }, (_, i) => {
   const s = 1.0 + noise(i * 3.11 + 7) * 1.9;
   const o = 0.16 + noise(i * 1.73 + 19) * 0.42;
   const d = noise(i * 4.03 + 23) * 3.4;
-  const c = STAR_COLORS[Math.floor(noise(i * 5.71 + 31) * STAR_COLORS.length) % STAR_COLORS.length];
+  const c =
+    STAR_COLORS[
+      Math.floor(noise(i * 5.71 + 31) * STAR_COLORS.length) % STAR_COLORS.length
+    ];
   return { x, y, s, o, d, c };
 });
 
-function extractOfficialResetRemaining(text: string): { h: number; m: number } | undefined {
+function extractOfficialResetRemaining(
+  text: string,
+): { h: number; m: number } | undefined {
   const compact = text.replace(/\s+/g, " ");
-  const m = compact.match(/Usage\s*5\s*jam:[^()]*\((?:[^0-9]*)(\d+)\s*[jh]\s*(\d+)\s*m\)/i);
+  const m = compact.match(
+    /Usage\s*5\s*jam:[^()]*\((?:[^0-9]*)(\d+)\s*[jh]\s*(\d+)\s*m\)/i,
+  );
   if (!m) return undefined;
   const h = Number(m[1]);
   const min = Number(m[2]);
@@ -51,7 +66,10 @@ function extractOfficialResetRemaining(text: string): { h: number; m: number } |
   return { h, m: min };
 }
 
-function mergeUsageLabelWithOfficialReset(baseUsageLabel: string | undefined, text: string): string | undefined {
+function mergeUsageLabelWithOfficialReset(
+  baseUsageLabel: string | undefined,
+  text: string,
+): string | undefined {
   if (!baseUsageLabel) return undefined;
   const pct = Number((baseUsageLabel.match(/^(\d{1,3})%/) || [])[1]);
   if (!Number.isFinite(pct)) return baseUsageLabel;
@@ -70,7 +88,10 @@ function mergeUsageLabelWithOfficialReset(baseUsageLabel: string | undefined, te
   return `${pct}% - ${remaining.h}h ${remaining.m}m (${resetAt})`;
 }
 
-function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string {
+function getUsageAwareBadgeClass(
+  baseClass: string,
+  usageLabel?: string,
+): string {
   const pct = Number((usageLabel || "").match(/^(\d{1,3})%/)?.[1] || "");
   if (!Number.isFinite(pct)) return baseClass;
 
@@ -80,7 +101,8 @@ function getUsageAwareBadgeClass(baseClass: string, usageLabel?: string): string
 }
 
 function renderInlineDiscordMarkdown(text: string) {
-  const tokenRegex = /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\|\|[^|]+\|\|)/g;
+  const tokenRegex =
+    /(\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\|\|[^|]+\|\|)/g;
   const parts = text
     .split(tokenRegex)
     .filter((p): p is string => typeof p === "string" && p !== "");
@@ -97,14 +119,20 @@ function renderInlineDiscordMarkdown(text: string) {
     }
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        <code key={`c-${index}`} className="rounded bg-white/10 px-1 py-0.5 text-[0.9em]">
+        <code
+          key={`c-${index}`}
+          className="rounded bg-white/10 px-1 py-0.5 text-[0.9em]"
+        >
           {part.slice(1, -1)}
         </code>
       );
     }
     if (part.startsWith("||") && part.endsWith("||")) {
       return (
-        <span key={`sp-${index}`} className="rounded bg-white/10 px-1 text-white/20 hover:text-white transition-colors">
+        <span
+          key={`sp-${index}`}
+          className="rounded bg-white/10 px-1 text-white/20 hover:text-white transition-colors"
+        >
           {part.slice(2, -2)}
         </span>
       );
@@ -140,7 +168,10 @@ function renderAssistantText(text: string) {
     const isCodeBlock = blockIndex % 2 === 1;
     if (isCodeBlock) {
       return (
-        <pre key={`pre-${blockIndex}`} className="my-2 overflow-x-auto rounded-md bg-black/40 p-3 text-xs">
+        <pre
+          key={`pre-${blockIndex}`}
+          className="my-2 overflow-x-auto rounded-md bg-black/40 p-3 text-xs"
+        >
           <code>{block}</code>
         </pre>
       );
@@ -159,7 +190,11 @@ function renderAssistantText(text: string) {
         const isOrdered = Boolean(olMatch);
         const startIndent = (ulMatch ? ulMatch[1] : olMatch?.[1] || "").length;
 
-        const items: Array<{ indent: number; content: string; checked?: boolean }> = [];
+        const items: Array<{
+          indent: number;
+          content: string;
+          checked?: boolean;
+        }> = [];
         let j = i;
         while (j < lines.length) {
           const mUl = lines[j].match(/^(\s*)[-*]\s+(\[[ xX]\]\s+)?(.+)$/);
@@ -185,16 +220,30 @@ function renderAssistantText(text: string) {
 
         const ListTag = (isOrdered ? "ol" : "ul") as "ol" | "ul";
         rendered.push(
-          <ListTag key={`list-${blockIndex}-${i}`} className={`my-1 ml-5 ${isOrdered ? "list-decimal" : "list-disc"}`}>
+          <ListTag
+            key={`list-${blockIndex}-${i}`}
+            className={`my-1 ml-5 ${isOrdered ? "list-decimal" : "list-disc"}`}
+          >
             {items.map((it, idx) => (
-              <li key={`li-${blockIndex}-${i}-${idx}`} style={{ marginLeft: `${Math.max(0, it.indent - startIndent) * 0.5}rem` }}>
+              <li
+                key={`li-${blockIndex}-${i}-${idx}`}
+                style={{
+                  marginLeft: `${Math.max(0, it.indent - startIndent) * 0.5}rem`,
+                }}
+              >
                 {typeof it.checked === "boolean" ? (
-                  <span className={it.checked ? "text-emerald-300" : "text-white/60"}>{it.checked ? "☑" : "☐"} </span>
+                  <span
+                    className={
+                      it.checked ? "text-emerald-300" : "text-white/60"
+                    }
+                  >
+                    {it.checked ? "☑" : "☐"}{" "}
+                  </span>
                 ) : null}
                 {renderInlineDiscordMarkdown(it.content)}
               </li>
             ))}
-          </ListTag>
+          </ListTag>,
         );
 
         i = j - 1;
@@ -203,9 +252,12 @@ function renderAssistantText(text: string) {
 
       if (line.startsWith("> ")) {
         rendered.push(
-          <blockquote key={`q-${blockIndex}-${i}`} className="my-1 border-l-2 border-white/30 pl-3 text-white/80">
+          <blockquote
+            key={`q-${blockIndex}-${i}`}
+            className="my-1 border-l-2 border-white/30 pl-3 text-white/80"
+          >
             {renderInlineDiscordMarkdown(line.slice(2))}
-          </blockquote>
+          </blockquote>,
         );
         continue;
       }
@@ -214,7 +266,7 @@ function renderAssistantText(text: string) {
         <span key={`line-${blockIndex}-${i}`}>
           {renderInlineDiscordMarkdown(line)}
           {i < lines.length - 1 && <br />}
-        </span>
+        </span>,
       );
     }
 
@@ -227,14 +279,16 @@ export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeConversationKey = searchParams.get("c")?.trim() || "";
+  const activeDraftKey = searchParams.get("d")?.trim() || "";
   const isDraftConversation = !activeConversationKey;
-  const cacheConversationKey = activeConversationKey || DRAFT_CHAT_KEY;
+  const cacheConversationKey = activeConversationKey || (activeDraftKey ? `draft:${activeDraftKey}` : DRAFT_CHAT_KEY);
   const chatCacheKey = `mg2_chat_messages:${cacheConversationKey}`;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
-  const [latestAgentModelId, setLatestAgentModelId] = useState<string>("openclaw");
+  const [latestAgentModelId, setLatestAgentModelId] =
+    useState<string>("openclaw");
   const [latestUsageLabel, setLatestUsageLabel] = useState<string>("");
   const [pendingAgentTs, setPendingAgentTs] = useState<number | null>(null);
   const pendingAgentTsRef = useRef<number | null>(null);
@@ -242,7 +296,9 @@ export default function DashboardPage() {
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamSeqRef = useRef(0);
   const sessionKeyRef = useRef<string | null>(null);
-  const persistConversationKeyRef = useRef<string>(activeConversationKey || DRAFT_CHAT_KEY);
+  const persistConversationKeyRef = useRef<string>(
+    activeConversationKey || DRAFT_CHAT_KEY,
+  );
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === "undefined") return [];
@@ -271,7 +327,9 @@ export default function DashboardPage() {
   const ensureServerSessionKey = async (key: string) => {
     if (sessionKeyRef.current) return sessionKeyRef.current;
 
-    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(key)}`, { cache: "no-store" });
+    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(key)}`, {
+      cache: "no-store",
+    });
     const data = (await r.json()) as { sessionKey?: string };
     if (!r.ok || !data?.sessionKey) {
       throw new Error("Failed to resolve chat session key");
@@ -289,7 +347,7 @@ export default function DashboardPage() {
       timestamp: number;
       modelId?: string;
       usageLabel?: string;
-    }
+    },
   ) => {
     try {
       const r = await fetch("/api/chat/messages", {
@@ -375,12 +433,22 @@ export default function DashboardPage() {
     const bootstrapChat = async () => {
       try {
         const [sessionRes, messagesRes] = await Promise.all([
-          fetch(`/api/chat/session?key=${encodeURIComponent(activeConversationKey)}`, { cache: "no-store" }),
-          fetch(`/api/chat/messages?key=${encodeURIComponent(activeConversationKey)}`, { cache: "no-store" }),
+          fetch(
+            `/api/chat/session?key=${encodeURIComponent(activeConversationKey)}`,
+            { cache: "no-store" },
+          ),
+          fetch(
+            `/api/chat/messages?key=${encodeURIComponent(activeConversationKey)}`,
+            { cache: "no-store" },
+          ),
         ]);
 
-        const sessionData = (await sessionRes.json()) as { sessionKey?: string };
-        const messagesData = (await messagesRes.json()) as { messages?: ChatMessage[] };
+        const sessionData = (await sessionRes.json()) as {
+          sessionKey?: string;
+        };
+        const messagesData = (await messagesRes.json()) as {
+          messages?: ChatMessage[];
+        };
 
         if (cancelled) return;
 
@@ -421,12 +489,13 @@ export default function DashboardPage() {
     const checkLocation = async () => {
       try {
         if (typeof navigator !== "undefined" && navigator.geolocation) {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 120000,
-            })
+          const position = await new Promise<GeolocationPosition>(
+            (resolve, reject) =>
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 120000,
+              }),
           );
 
           const lat = position.coords.latitude;
@@ -434,7 +503,7 @@ export default function DashboardPage() {
 
           const geo = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
-            { cache: "no-store" }
+            { cache: "no-store" },
           );
 
           if (geo.ok) {
@@ -448,10 +517,14 @@ export default function DashboardPage() {
               };
             };
 
-            const city = data.address?.city || data.address?.town || data.address?.village;
+            const city =
+              data.address?.city || data.address?.town || data.address?.village;
             const state = data.address?.state;
             const country = data.address?.country;
-            const label = [city, state, country].filter(Boolean).join(" • ").toUpperCase();
+            const label = [city, state, country]
+              .filter(Boolean)
+              .join(" • ")
+              .toUpperCase();
 
             if (!cancelled && label) {
               setRegionLabel(label);
@@ -531,7 +604,10 @@ export default function DashboardPage() {
     const targetWps = 9.5; // words/chunks per second
     const naturalDuration = Math.ceil((chunks.length / targetWps) * 1000);
     const totalDuration = Math.max(minDurationMs, naturalDuration);
-    const tickMs = Math.max(24, Math.floor(totalDuration / Math.max(1, chunks.length)));
+    const tickMs = Math.max(
+      24,
+      Math.floor(totalDuration / Math.max(1, chunks.length)),
+    );
 
     streamTimerRef.current = setInterval(() => {
       i = Math.min(chunks.length, i + 1);
@@ -541,11 +617,11 @@ export default function DashboardPage() {
         prev.map((m) =>
           m.id === messageId
             ? {
-              ...m,
-              content: next,
-            }
-            : m
-        )
+                ...m,
+                content: next,
+              }
+            : m,
+        ),
       );
 
       if (i >= chunks.length && streamTimerRef.current) {
@@ -575,7 +651,7 @@ export default function DashboardPage() {
     }
 
     const es = new EventSource(
-      `/api/openclaw/stream?sessionKey=${encodeURIComponent(sessionKey)}&after=${afterTs}`
+      `/api/openclaw/stream?sessionKey=${encodeURIComponent(sessionKey)}&after=${afterTs}`,
     );
     eventSourceRef.current = es;
 
@@ -592,7 +668,8 @@ export default function DashboardPage() {
         {
           id: Date.now(),
           sender: "agent",
-          content: "Prosesnya lebih lama dari biasanya. Kalau masih belum muncul, cek log OpenClaw ya.",
+          content:
+            "Prosesnya lebih lama dari biasanya. Kalau masih belum muncul, cek log OpenClaw ya.",
           timestamp: Date.now(),
         },
       ]);
@@ -604,10 +681,18 @@ export default function DashboardPage() {
       clearTimeout(timeout);
 
       try {
-        const payload = JSON.parse((event as MessageEvent).data) as { text?: string; timestamp?: number; model?: string; usageLabel?: string };
+        const payload = JSON.parse((event as MessageEvent).data) as {
+          text?: string;
+          timestamp?: number;
+          model?: string;
+          usageLabel?: string;
+        };
         const text = payload?.text || "(No reply text)";
         const modelId = payload?.model;
-        const usageLabel = mergeUsageLabelWithOfficialReset(payload?.usageLabel, text);
+        const usageLabel = mergeUsageLabelWithOfficialReset(
+          payload?.usageLabel,
+          text,
+        );
         if (modelId) {
           setLatestAgentModelId(modelId);
         }
@@ -615,7 +700,8 @@ export default function DashboardPage() {
           setLatestUsageLabel(usageLabel);
         }
 
-        const messageTs = pendingAgentTsRef.current || payload?.timestamp || Date.now();
+        const messageTs =
+          pendingAgentTsRef.current || payload?.timestamp || Date.now();
 
         streamAssistantText({
           text,
@@ -673,7 +759,12 @@ export default function DashboardPage() {
     shouldAutoScrollRef.current = true;
     const sentAt = Date.now();
 
-    const userMessage: ChatMessage = { id: sentAt, sender: "user", content: clean, timestamp: sentAt };
+    const userMessage: ChatMessage = {
+      id: sentAt,
+      sender: "user",
+      content: clean,
+      timestamp: sentAt,
+    };
     setChatMessages((prev) => [...prev, userMessage]);
 
     const typingStartedAt = Date.now();
@@ -685,8 +776,12 @@ export default function DashboardPage() {
       let effectiveConversationKey = activeConversationKey;
 
       if (!effectiveConversationKey) {
-        const createRes = await fetch("/api/chat/conversations", { method: "POST" });
-        const createData = (await createRes.json().catch(() => ({}))) as { key?: string };
+        const createRes = await fetch("/api/chat/conversations", {
+          method: "POST",
+        });
+        const createData = (await createRes.json().catch(() => ({}))) as {
+          key?: string;
+        };
 
         if (!createRes.ok || !createData?.key) {
           throw new Error("Failed to create conversation");
@@ -696,12 +791,17 @@ export default function DashboardPage() {
         persistConversationKeyRef.current = effectiveConversationKey;
 
         try {
-          localStorage.setItem(`mg2_chat_messages:${effectiveConversationKey}`, JSON.stringify([...chatMessages, userMessage]));
+          localStorage.setItem(
+            `mg2_chat_messages:${effectiveConversationKey}`,
+            JSON.stringify([...chatMessages, userMessage]),
+          );
         } catch {
           // ignore cache write error
         }
 
-        router.replace(`/chat?c=${encodeURIComponent(effectiveConversationKey)}`);
+        router.replace(
+          `/chat?c=${encodeURIComponent(effectiveConversationKey)}`,
+        );
       }
 
       await persistMessage(effectiveConversationKey, {
@@ -737,7 +837,8 @@ export default function DashboardPage() {
         return;
       }
 
-      const serverAcceptedAt = typeof res?.acceptedAt === "number" ? res.acceptedAt : Date.now();
+      const serverAcceptedAt =
+        typeof res?.acceptedAt === "number" ? res.acceptedAt : Date.now();
       // pakai timestamp server (bukan jam browser) supaya filter stream tidak miss reply
       waitForAgentReply(res.sessionKey || sessionKey, serverAcceptedAt - 5000);
     } catch (error) {
@@ -757,7 +858,11 @@ export default function DashboardPage() {
     }
   };
 
-  const handleEmptyMouseMove = (e: { currentTarget: HTMLDivElement; clientX: number; clientY: number }) => {
+  const handleEmptyMouseMove = (e: {
+    currentTarget: HTMLDivElement;
+    clientX: number;
+    clientY: number;
+  }) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const nx = (e.clientX - rect.left) / rect.width - 0.5;
     const ny = (e.clientY - rect.top) / rect.height - 0.5;
@@ -773,7 +878,9 @@ export default function DashboardPage() {
       <div className="flex h-screen w-full items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
-          <p className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">Loading...</p>
+          <p className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">
+            Loading...
+          </p>
         </div>
       </div>
     );
@@ -789,7 +896,9 @@ export default function DashboardPage() {
           subtitle="Real-time assistant conversation"
           regionLabel={regionLabel}
           systemOnline={isGatewayOnline}
-          systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
+          systemStatusLabel={
+            isGatewayOnline ? "System Online" : "System Offline"
+          }
         />
         <div className="flex flex-col p-6 w-full h-full min-h-0 overflow-hidden relative">
           {isEmptyState ? (
@@ -800,58 +909,102 @@ export default function DashboardPage() {
             >
               <style jsx>{`
                 @keyframes starFloat {
-                  0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: var(--o); }
-                  50% { transform: translate3d(var(--dx), -8px, 0) scale(1.25); opacity: calc(var(--o) + 0.35); }
+                  0%,
+                  100% {
+                    transform: translate3d(0, 0, 0) scale(1);
+                    opacity: var(--o);
+                  }
+                  50% {
+                    transform: translate3d(var(--dx), -8px, 0) scale(1.25);
+                    opacity: calc(var(--o) + 0.35);
+                  }
                 }
                 @keyframes starPulse {
-                  0%,100% { filter: blur(0px) drop-shadow(0 0 0 rgba(147,197,253,0)); }
-                  50% { filter: blur(0.2px) drop-shadow(0 0 8px rgba(167,139,250,0.7)); }
+                  0%,
+                  100% {
+                    filter: blur(0px) drop-shadow(0 0 0 rgba(147, 197, 253, 0));
+                  }
+                  50% {
+                    filter: blur(0.2px)
+                      drop-shadow(0 0 8px rgba(167, 139, 250, 0.7));
+                  }
                 }
                 @keyframes shootingStar {
-                  0% { transform: translate3d(-18vw, -10vh, 0) rotate(-18deg); opacity: 0; }
-                  8% { opacity: 0.9; }
-                  22% { opacity: 0; }
-                  100% { transform: translate3d(50vw, 24vh, 0) rotate(-18deg); opacity: 0; }
+                  0% {
+                    transform: translate3d(-18vw, -10vh, 0) rotate(-18deg);
+                    opacity: 0;
+                  }
+                  8% {
+                    opacity: 0.9;
+                  }
+                  22% {
+                    opacity: 0;
+                  }
+                  100% {
+                    transform: translate3d(50vw, 24vh, 0) rotate(-18deg);
+                    opacity: 0;
+                  }
                 }
                 @keyframes skyRotate {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
+                  0% {
+                    transform: rotate(0deg);
+                  }
+                  100% {
+                    transform: rotate(360deg);
+                  }
                 }
               `}</style>
 
               <div
                 className="pointer-events-none absolute inset-0 transition-transform duration-500"
-                style={{ transform: `translate(${starDrift.x}px, ${starDrift.y}px)` }}
+                style={{
+                  transform: `translate(${starDrift.x}px, ${starDrift.y}px)`,
+                }}
               >
-                <div className="absolute -inset-[12%]" style={{ animation: "skyRotate 240s linear infinite", transformOrigin: "center center" }}>
+                <div
+                  className="absolute -inset-[12%]"
+                  style={{
+                    animation: "skyRotate 240s linear infinite",
+                    transformOrigin: "center center",
+                  }}
+                >
                   {STAR_PARTICLES.map((p, i) => (
                     <span
                       key={`star-${i}`}
                       className="absolute rounded-full"
-                      style={{
-                        left: `${p.x}%`,
-                        top: `${p.y}%`,
-                        width: `${p.s}px`,
-                        height: `${p.s}px`,
-                        backgroundColor: p.c,
-                        opacity: p.o,
-                        boxShadow: `0 0 ${4 + p.s * 1.8}px ${p.c}`,
-                        animation: `starFloat ${4 + (i % 5) * 0.75}s ease-in-out infinite, starPulse ${3.2 + (i % 4) * 0.6}s ease-in-out infinite`,
-                        animationDelay: `-${p.d}s`,
-                        "--o": p.o,
-                        "--dx": `${(i % 2 === 0 ? 1 : -1) * (1 + (i % 3))}px`,
-                      } as CSSProperties & Record<"--o" | "--dx", string | number>}
+                      style={
+                        {
+                          left: `${p.x}%`,
+                          top: `${p.y}%`,
+                          width: `${p.s}px`,
+                          height: `${p.s}px`,
+                          backgroundColor: p.c,
+                          opacity: p.o,
+                          boxShadow: `0 0 ${4 + p.s * 1.8}px ${p.c}`,
+                          animation: `starFloat ${4 + (i % 5) * 0.75}s ease-in-out infinite, starPulse ${3.2 + (i % 4) * 0.6}s ease-in-out infinite`,
+                          animationDelay: `-${p.d}s`,
+                          "--o": p.o,
+                          "--dx": `${(i % 2 === 0 ? 1 : -1) * (1 + (i % 3))}px`,
+                        } as CSSProperties &
+                          Record<"--o" | "--dx", string | number>
+                      }
                     />
                   ))}
                 </div>
 
                 <div
                   className="absolute left-[8%] top-[18%] h-[1.5px] w-28 bg-gradient-to-r from-white/0 via-sky-200/90 to-white/0"
-                  style={{ animation: "shootingStar 14s linear infinite", animationDelay: "1.8s" }}
+                  style={{
+                    animation: "shootingStar 14s linear infinite",
+                    animationDelay: "1.8s",
+                  }}
                 />
                 <div
                   className="absolute left-[48%] top-[8%] h-[1.5px] w-24 bg-gradient-to-r from-white/0 via-indigo-200/90 to-white/0"
-                  style={{ animation: "shootingStar 17s linear infinite", animationDelay: "7.3s" }}
+                  style={{
+                    animation: "shootingStar 17s linear infinite",
+                    animationDelay: "7.3s",
+                  }}
                 />
               </div>
 
@@ -873,7 +1026,10 @@ export default function DashboardPage() {
                       const prevMsg = chatMessages[index - 1];
                       const currentMinute = Math.floor(msg.timestamp / 60000);
                       const prevMinute = Math.floor(prevMsg.timestamp / 60000);
-                      if (currentMinute === prevMinute && msg.sender === prevMsg.sender) {
+                      if (
+                        currentMinute === prevMinute &&
+                        msg.sender === prevMsg.sender
+                      ) {
                         showTime = false;
                       }
                     }
@@ -882,13 +1038,19 @@ export default function DashboardPage() {
                       <div key={msg.id} className="w-full flex justify-center">
                         <div className="flex flex-col gap-2.5 w-full max-w-5xl">
                           {msg.sender === "user" ? (
-                            <ChatUsersCard timestamp={msg.timestamp} showTime={showTime}>
+                            <ChatUsersCard
+                              timestamp={msg.timestamp}
+                              showTime={showTime}
+                            >
                               {msg.content}
                             </ChatUsersCard>
                           ) : (
                             (() => {
-                              const meta = getModelMeta(msg.modelId || latestAgentModelId);
-                              const usageLabel = msg.usageLabel || latestUsageLabel;
+                              const meta = getModelMeta(
+                                msg.modelId || latestAgentModelId,
+                              );
+                              const usageLabel =
+                                msg.usageLabel || latestUsageLabel;
                               return (
                                 <ChatCard
                                   name={AGENT_DISPLAY_NAME}
@@ -896,10 +1058,15 @@ export default function DashboardPage() {
                                   showTime={showTime}
                                   modelName={meta.displayName}
                                   modelLogo={meta.logoPath}
-                                  usageClassName={getUsageAwareBadgeClass(meta.badgeClass, usageLabel)}
+                                  usageClassName={getUsageAwareBadgeClass(
+                                    meta.badgeClass,
+                                    usageLabel,
+                                  )}
                                   modelUsageLabel={usageLabel}
                                 >
-                                  <div className="max-w-none break-words">{renderAssistantText(msg.content)}</div>
+                                  <div className="max-w-none break-words">
+                                    {renderAssistantText(msg.content)}
+                                  </div>
                                 </ChatCard>
                               );
                             })()
@@ -917,11 +1084,16 @@ export default function DashboardPage() {
                           return (
                             <ChatCard
                               name={AGENT_DISPLAY_NAME}
-                              timestamp={pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP}
+                              timestamp={
+                                pendingAgentTs ?? INITIAL_MESSAGE_TIMESTAMP
+                              }
                               showTime
                               modelName={meta.displayName}
                               modelLogo={meta.logoPath}
-                              usageClassName={getUsageAwareBadgeClass(meta.badgeClass, latestUsageLabel)}
+                              usageClassName={getUsageAwareBadgeClass(
+                                meta.badgeClass,
+                                latestUsageLabel,
+                              )}
                               modelUsageLabel={latestUsageLabel}
                               hideHeader
                             >
@@ -955,4 +1127,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -39,6 +39,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeConversationKey = searchParams.get("c") || "";
+  const activeDraftKey = searchParams.get("d") || "";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -91,7 +92,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
   };
 
   const handleNewChat = () => {
-    router.push("/chat");
+    const draftKey = crypto.randomUUID();
+    router.push(`/chat?d=${encodeURIComponent(draftKey)}`);
   };
 
   return (
@@ -122,8 +124,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
               />
             </Link>
             <MenuItem
-              variant={pathname === "/chat" && !searchParams.get("c") ? "primary" : "secondary"}
-              label="Chat"
+              variant={pathname === "/chat" && !activeConversationKey ? "primary" : "secondary"}
+              label={activeDraftKey ? "New Chat" : "Chat"}
               onClick={handleNewChat}
               icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
             />
