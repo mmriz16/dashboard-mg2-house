@@ -77,7 +77,14 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
   useEffect(() => {
     refreshConversations();
-  }, [pathname]);
+
+    const onHistoryUpdated = () => {
+      refreshConversations();
+    };
+
+    window.addEventListener("chat-history-updated", onHistoryUpdated);
+    return () => window.removeEventListener("chat-history-updated", onHistoryUpdated);
+  }, [pathname, searchParams]);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));

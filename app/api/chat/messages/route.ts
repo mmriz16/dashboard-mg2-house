@@ -91,5 +91,12 @@ export async function POST(req: Request) {
     ]
   );
 
+  await db.query(
+    `update chat_conversations
+        set updated_at = now()
+      where user_id = $1 and key = $2`,
+    [userId, conversationKey]
+  );
+
   return NextResponse.json({ ok: true });
 }

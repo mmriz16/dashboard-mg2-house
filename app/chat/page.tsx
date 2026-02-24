@@ -292,11 +292,15 @@ export default function DashboardPage() {
     }
   ) => {
     try {
-      await fetch("/api/chat/messages", {
+      const r = await fetch("/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...message, key }),
       });
+
+      if (r.ok && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("chat-history-updated"));
+      }
     } catch {
       // non-blocking
     }
