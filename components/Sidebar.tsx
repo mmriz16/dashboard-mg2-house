@@ -163,7 +163,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
   return (
     <div className="hidden md:flex md:flex-row">
-      <div className="flex p-6 w-75 gap-4 flex-col h-screen border-r bg-surface-card border-border">
+      <div className="flex p-6 w-75 gap-4 flex-col h-screen border-r bg-surface-card border-border overflow-x-hidden">
         <h1 className="text-2xl font-manrope font-medium text-white">Openclaw</h1>
 
         <div className="flex flex-col gap-2">
@@ -200,7 +200,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <div className="flex flex-col gap-2 min-h-0">
           <h1 className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">chat history</h1>
 
-          <div className="flex flex-col gap-1 overflow-y-auto pr-1 min-h-0">
+          <div className="flex flex-col gap-1 overflow-y-auto overflow-x-hidden pr-1 min-h-0">
             {grouped.length === 0 ? (
               <p className="text-xs text-white/50 font-ibm-plex-mono px-2 py-1">No chats yet</p>
             ) : (
