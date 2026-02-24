@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { ChatUsersCard } from "@/components/ui/ChatUsers";
 import { ChatCard } from "@/components/ui/ChatAgent";
@@ -311,6 +311,7 @@ export default function DashboardPage() {
       return [];
     }
   });
+  const [loadedCacheKey, setLoadedCacheKey] = useState(chatCacheKey);
   const [starDrift, setStarDrift] = useState({ x: 0, y: 0 });
   const [isGatewayOnline, setIsGatewayOnline] = useState(true);
   const REGION_CACHE_KEY = "mg2_region_label";
@@ -322,7 +323,11 @@ export default function DashboardPage() {
       return "";
     }
   });
-  const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
+  const visibleMessages = useMemo(
+    () => (loadedCacheKey === chatCacheKey ? chatMessages : []),
+    [loadedCacheKey, chatCacheKey, chatMessages]
+  );
+  const isEmptyState = visibleMessages.length === 0 && !isAgentTyping;
 
   const ensureServerSessionKey = async (key: string) => {
     if (sessionKeyRef.current) return sessionKeyRef.current;
@@ -374,13 +379,16 @@ export default function DashboardPage() {
         const raw = localStorage.getItem(chatCacheKey);
         if (!raw) {
           setChatMessages([]);
+          setLoadedCacheKey(chatCacheKey);
           return;
         }
 
         const parsed = JSON.parse(raw) as ChatMessage[];
         setChatMessages(Array.isArray(parsed) ? parsed : []);
+        setLoadedCacheKey(chatCacheKey);
       } catch {
         setChatMessages([]);
+        setLoadedCacheKey(chatCacheKey);
       }
     });
   }, [chatCacheKey, activeConversationKey]);
@@ -397,7 +405,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!shouldAutoScrollRef.current) return;
     scrollToBottom();
-  }, [chatMessages]);
+  }, [visibleMessages]);
 
   const handleMessagesScroll = () => {
     const el = messagesContainerRef.current;
@@ -1020,7 +1028,7 @@ export default function DashboardPage() {
                 className="flex-1 min-h-0 overflow-y-auto w-full pr-2 pb-4"
               >
                 <div className="min-h-full flex flex-col justify-end gap-1">
-                  {chatMessages.map((msg, index) => {
+                  {visibleMessages.map((msg, index) => {
                     let showTime = true;
                     if (index > 0) {
                       const prevMsg = chatMessages[index - 1];

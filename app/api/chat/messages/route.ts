@@ -9,8 +9,29 @@ const STOP_WORDS = new Set([
 ]);
 
 function summarizeConversation(contents: string[]): string {
-  const text = contents.join(" ").toLowerCase();
-  const words = text.match(/[a-zA-Z0-9]{3,}/g) || [];
+  const joined = contents.join(" ").replace(/\s+/g, " ").trim();
+  if (!joined) return "New Chat";
+
+  const firstSentence = joined
+    .split(/[.!?\n]/)
+    .map((s) => s.trim())
+    .find(Boolean);
+
+  if (firstSentence) {
+    const tokens = firstSentence
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z0-9-]/g, ""))
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w.toLowerCase()))
+      .slice(0, 3);
+
+    if (tokens.length >= 2) {
+      return tokens
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ");
+    }
+  }
+
+  const words = joined.toLowerCase().match(/[a-zA-Z0-9]{3,}/g) || [];
   const freq = new Map<string, number>();
 
   for (const w of words) {
@@ -115,7 +136,16 @@ export async function POST(req: Request) {
     ]
   );
 
-  const recent = await db.query<{ content: string }>(
+  const recentUser = await db.query<{ content: string }>(
+    `select content
+       from chat_messages
+      where user_id = $1 and conversation_key = $2 and sender = 'user'
+      order by ts desc
+      limit 30`,
+    [userId, conversationKey]
+  );
+
+  const recentAny = await db.query<{ content: string }>(
     `select content
        from chat_messages
       where user_id = $1 and conversation_key = $2
@@ -124,7 +154,8 @@ export async function POST(req: Request) {
     [userId, conversationKey]
   );
 
-  const title = summarizeConversation(recent.rows.map((r) => r.content));
+  const sourceRows = recentUser.rows.length > 0 ? recentUser.rows : recentAny.rows;
+  const title = summarizeConversation(sourceRows.map((r) => r.content));
 
   await db.query(
     `update chat_conversations
