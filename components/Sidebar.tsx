@@ -40,8 +40,19 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const searchParams = useSearchParams();
   const activeConversationKey = searchParams.get("c") || "";
   const activeDraftKey = searchParams.get("d") || "";
+  const CHAT_HISTORY_CACHE_KEY = "mg2_sidebar_chat_history";
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(CHAT_HISTORY_CACHE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as Conversation[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Today: true,
     Yesterday: false,
@@ -69,6 +80,11 @@ export function Sidebar({ onLogout }: SidebarProps) {
       const data = (await res.json()) as { conversations?: Conversation[] };
       if (res.ok && Array.isArray(data.conversations)) {
         setConversations(data.conversations);
+        try {
+          localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(data.conversations));
+        } catch {
+          // ignore cache write error
+        }
       }
     } finally {
     }
