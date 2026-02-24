@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MenuItem } from "@/components/MenuItem";
-import { SubMenuItem } from "@/components/SubMenuItem";
 import { ProfileCard } from "@/components/ProfileCard";
 import { MG2Icon } from "@/components/ui/MG2Icon";
 import Link from "next/link";
@@ -15,6 +14,7 @@ interface SidebarProps {
 type Conversation = {
   key: string;
   title: string;
+  pinned?: boolean;
   lastTimestamp: number;
 };
 
@@ -53,10 +53,12 @@ export function Sidebar({ onLogout }: SidebarProps) {
       return [];
     }
   });
+
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Today: true,
     Yesterday: false,
   });
+  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const groups: Record<string, Conversation[]> = {};
@@ -75,31 +77,34 @@ export function Sidebar({ onLogout }: SidebarProps) {
   }, [conversations]);
 
   const refreshConversations = async () => {
-    try {
-      const res = await fetch("/api/chat/conversations", { cache: "no-store" });
-      const data = (await res.json()) as { conversations?: Conversation[] };
-      if (res.ok && Array.isArray(data.conversations)) {
-        setConversations(data.conversations);
-        try {
-          localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(data.conversations));
-        } catch {
-          // ignore cache write error
-        }
+    const res = await fetch("/api/chat/conversations", { cache: "no-store" });
+    const data = (await res.json()) as { conversations?: Conversation[] };
+    if (res.ok && Array.isArray(data.conversations)) {
+      setConversations(data.conversations);
+      try {
+        localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(data.conversations));
+      } catch {
+        // ignore cache write error
       }
-    } finally {
     }
   };
 
   useEffect(() => {
-    refreshConversations();
+    void refreshConversations();
 
     const onHistoryUpdated = () => {
-      refreshConversations();
+      void refreshConversations();
     };
 
     window.addEventListener("chat-history-updated", onHistoryUpdated);
     return () => window.removeEventListener("chat-history-updated", onHistoryUpdated);
   }, [pathname, searchParams]);
+
+  useEffect(() => {
+    const onDocClick = () => setOpenMenuKey(null);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
@@ -108,6 +113,47 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const handleNewChat = () => {
     const draftKey = crypto.randomUUID();
     router.push(`/chat?d=${encodeURIComponent(draftKey)}`);
+  };
+
+  const handleRename = async (item: Conversation) => {
+    const next = window.prompt("Rename chat", item.title)?.trim();
+    if (!next) return;
+
+    await fetch("/api/chat/conversations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: item.key, title: next }),
+    });
+
+    setOpenMenuKey(null);
+    void refreshConversations();
+  };
+
+  const handleTogglePin = async (item: Conversation) => {
+    await fetch("/api/chat/conversations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: item.key, pinned: !item.pinned }),
+    });
+
+    setOpenMenuKey(null);
+    void refreshConversations();
+  };
+
+  const handleDelete = async (item: Conversation) => {
+    const ok = window.confirm("Delete this chat history?");
+    if (!ok) return;
+
+    await fetch(`/api/chat/conversations?key=${encodeURIComponent(item.key)}`, {
+      method: "DELETE",
+    });
+
+    if (activeConversationKey === item.key) {
+      handleNewChat();
+    }
+
+    setOpenMenuKey(null);
+    void refreshConversations();
   };
 
   return (
@@ -172,14 +218,69 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
                     {expanded && (
                       <div className="flex flex-col gap-0">
-                        {items.map((item) => (
-                          <SubMenuItem
-                            key={item.key}
-                            label={item.title}
-                            variant={pathname === "/chat" && activeConversationKey === item.key ? "primary" : "secondary"}
-                            onClick={() => router.push(`/chat?c=${encodeURIComponent(item.key)}`)}
-                          />
-                        ))}
+                        {items.map((item) => {
+                          const isActive = pathname === "/chat" && activeConversationKey === item.key;
+                          return (
+                            <div key={item.key} className="w-60 pl-4 inline-flex flex-col justify-start items-start gap-2.5">
+                              <div className="self-stretch border-l border-border inline-flex justify-start items-center">
+                                <div className="w-2 h-0 outline outline-offset-[-0.50px] outline-border" />
+
+                                <div
+                                  onClick={() => router.push(`/chat?c=${encodeURIComponent(item.key)}`)}
+                                  className={`group relative flex-1 h-10 pl-2.5 pr-2 py-2 rounded-lg flex justify-start items-center gap-2.5 transition-all cursor-pointer ${
+                                    isActive ? "bg-surface outline outline-border" : "outline outline-transparent hover:bg-surface-hover"
+                                  }`}
+                                >
+                                  <span className="flex-1 text-white text-sm font-normal font-manrope line-clamp-1">
+                                    {item.pinned ? "📌 " : ""}
+                                    {item.title}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuKey((prev) => (prev === item.key ? null : item.key));
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-white/70 hover:text-white px-1"
+                                    aria-label="Chat options"
+                                  >
+                                    ⋯
+                                  </button>
+
+                                  {openMenuKey === item.key && (
+                                    <div
+                                      className="absolute right-1 top-9 z-20 min-w-28 rounded-md border border-border bg-surface-card p-1 shadow-lg"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type="button"
+                                        className="w-full text-left text-xs text-white/80 hover:bg-surface-hover rounded px-2 py-1"
+                                        onClick={() => void handleRename(item)}
+                                      >
+                                        Rename
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="w-full text-left text-xs text-white/80 hover:bg-surface-hover rounded px-2 py-1"
+                                        onClick={() => void handleTogglePin(item)}
+                                      >
+                                        {item.pinned ? "Unpin" : "Pin"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="w-full text-left text-xs text-rose-300 hover:bg-surface-hover rounded px-2 py-1"
+                                        onClick={() => void handleDelete(item)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -196,5 +297,3 @@ export function Sidebar({ onLogout }: SidebarProps) {
     </div>
   );
 }
-
-

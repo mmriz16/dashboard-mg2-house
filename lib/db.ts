@@ -11,6 +11,7 @@ export async function ensureChatTables() {
       user_id text not null,
       key text not null default 'default',
       title text,
+      pinned boolean not null default false,
       openclaw_session_key text not null,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
@@ -21,6 +22,11 @@ export async function ensureChatTables() {
   await db.query(`
     alter table chat_conversations
     add column if not exists title text;
+  `);
+
+  await db.query(`
+    alter table chat_conversations
+    add column if not exists pinned boolean not null default false;
   `);
 
   await db.query(`

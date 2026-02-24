@@ -5,23 +5,25 @@ import { getServerSession } from "@/lib/server-session";
 type ConversationRow = {
   key: string;
   title: string | null;
+  pinned: boolean;
   updated_at: string;
   last_content: string | null;
   last_ts: string | null;
 };
 
-export async function GET() {
+async function getUserId() {
   const session = await getServerSession();
-  const userId = session?.user?.id;
+  return session?.user?.id;
+}
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET() {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await ensureChatTables();
 
   const result = await db.query<ConversationRow>(
-    `select c.key, c.title, c.updated_at, lm.content as last_content, lm.ts::text as last_ts
+    `select c.key, c.title, c.pinned, c.updated_at, lm.content as last_content, lm.ts::text as last_ts
        from chat_conversations c
        join lateral (
          select content, ts
@@ -32,7 +34,7 @@ export async function GET() {
           limit 1
        ) lm on true
       where c.user_id = $1
-      order by lm.ts desc`,
+      order by c.pinned desc, lm.ts desc`,
     [userId]
   );
 
@@ -43,6 +45,7 @@ export async function GET() {
     return {
       key: row.key,
       title: row.title?.trim() || row.last_content?.trim()?.slice(0, 56) || "New Chat",
+      pinned: !!row.pinned,
       lastTimestamp: safeLastTs,
     };
   });
@@ -51,12 +54,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession();
-  const userId = session?.user?.id;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await ensureChatTables();
 
@@ -72,4 +71,47 @@ export async function POST(req: Request) {
   );
 
   return NextResponse.json({ key: conversationKey, sessionKey: openclawSessionKey });
+}
+
+export async function PATCH(req: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as {
+    key?: string;
+    title?: string;
+    pinned?: boolean;
+  };
+
+  const key = body.key?.trim();
+  if (!key) return NextResponse.json({ error: "key is required" }, { status: 400 });
+
+  if (typeof body.title === "string") {
+    await db.query(
+      `update chat_conversations set title = $3, updated_at = now() where user_id = $1 and key = $2`,
+      [userId, key, body.title.trim().slice(0, 80) || "New Chat"]
+    );
+  }
+
+  if (typeof body.pinned === "boolean") {
+    await db.query(
+      `update chat_conversations set pinned = $3 where user_id = $1 and key = $2`,
+      [userId, key, body.pinned]
+    );
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: Request) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const key = new URL(req.url).searchParams.get("key")?.trim();
+  if (!key) return NextResponse.json({ error: "key is required" }, { status: 400 });
+
+  await db.query(`delete from chat_messages where user_id = $1 and conversation_key = $2`, [userId, key]);
+  await db.query(`delete from chat_conversations where user_id = $1 and key = $2`, [userId, key]);
+
+  return NextResponse.json({ ok: true });
 }
