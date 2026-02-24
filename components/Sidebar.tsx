@@ -38,11 +38,10 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeConversationKey = searchParams.get("c") || "default";
+  const activeConversationKey = searchParams.get("c") || "";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
-  const [creatingChat, setCreatingChat] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Today: true,
     Yesterday: false,
@@ -84,20 +83,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const handleNewChat = async () => {
-    if (creatingChat) return;
-    setCreatingChat(true);
-
-    try {
-      const res = await fetch("/api/chat/conversations", { method: "POST" });
-      const data = (await res.json()) as { key?: string };
-      if (!res.ok || !data?.key) return;
-
-      await refreshConversations();
-      router.push(`/chat?c=${encodeURIComponent(data.key)}`);
-    } finally {
-      setCreatingChat(false);
-    }
+  const handleNewChat = () => {
+    router.push("/chat");
   };
 
   return (
@@ -128,8 +115,8 @@ export function Sidebar({ onLogout }: SidebarProps) {
               />
             </Link>
             <MenuItem
-              variant={pathname === "/chat" ? "primary" : "secondary"}
-              label={creatingChat ? "Creating..." : "Chat"}
+              variant={pathname === "/chat" && !searchParams.get("c") ? "primary" : "secondary"}
+              label="Chat"
               onClick={handleNewChat}
               icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
             />

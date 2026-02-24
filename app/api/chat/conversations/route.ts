@@ -22,7 +22,7 @@ export async function GET() {
   const result = await db.query<ConversationRow>(
     `select c.key, c.updated_at, lm.content as last_content, lm.ts::text as last_ts
        from chat_conversations c
-       left join lateral (
+       join lateral (
          select content, ts
            from chat_messages m
           where m.user_id = c.user_id
@@ -31,7 +31,7 @@ export async function GET() {
           limit 1
        ) lm on true
       where c.user_id = $1
-      order by coalesce(lm.ts, (extract(epoch from c.updated_at) * 1000)::bigint) desc`,
+      order by lm.ts desc`,
     [userId]
   );
 

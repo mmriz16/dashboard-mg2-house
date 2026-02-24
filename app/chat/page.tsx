@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { TextEditor } from "@/components/ui/TextEditor";
 import { getModelMeta } from "@/lib/model-meta";
 import { Topbar } from "@/components/Topbar";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type ChatMessage = {
   id: number;
@@ -20,7 +20,7 @@ type ChatMessage = {
   usageLabel?: string;
 };
 
-const DEFAULT_CHAT_CONVERSATION_KEY = "default";
+const DRAFT_CHAT_KEY = "__draft__";
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
 const AGENT_DISPLAY_NAME = "Openclaw Agent\u{1F47E}";
@@ -224,9 +224,12 @@ function renderAssistantText(text: string) {
 
 export default function DashboardPage() {
   const { isPending } = authClient.useSession();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const conversationKey = searchParams.get("c")?.trim() || DEFAULT_CHAT_CONVERSATION_KEY;
-  const chatCacheKey = `mg2_chat_messages:${conversationKey}`;
+  const activeConversationKey = searchParams.get("c")?.trim() || "";
+  const isDraftConversation = !activeConversationKey;
+  const cacheConversationKey = activeConversationKey || DRAFT_CHAT_KEY;
+  const chatCacheKey = `mg2_chat_messages:${cacheConversationKey}`;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -239,6 +242,7 @@ export default function DashboardPage() {
   const streamTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamSeqRef = useRef(0);
   const sessionKeyRef = useRef<string | null>(null);
+  const persistConversationKeyRef = useRef<string>(activeConversationKey || DRAFT_CHAT_KEY);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === "undefined") return [];
@@ -264,10 +268,10 @@ export default function DashboardPage() {
   });
   const isEmptyState = chatMessages.length === 0 && !isAgentTyping;
 
-  const ensureServerSessionKey = async () => {
+  const ensureServerSessionKey = async (key: string) => {
     if (sessionKeyRef.current) return sessionKeyRef.current;
 
-    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" });
+    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(key)}`, { cache: "no-store" });
     const data = (await r.json()) as { sessionKey?: string };
     if (!r.ok || !data?.sessionKey) {
       throw new Error("Failed to resolve chat session key");
@@ -277,18 +281,21 @@ export default function DashboardPage() {
     return data.sessionKey;
   };
 
-  const persistMessage = async (message: {
-    sender: "user" | "agent";
-    content: string;
-    timestamp: number;
-    modelId?: string;
-    usageLabel?: string;
-  }) => {
+  const persistMessage = async (
+    key: string,
+    message: {
+      sender: "user" | "agent";
+      content: string;
+      timestamp: number;
+      modelId?: string;
+      usageLabel?: string;
+    }
+  ) => {
     try {
       await fetch("/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...message, key: conversationKey }),
+        body: JSON.stringify({ ...message, key }),
       });
     } catch {
       // non-blocking
@@ -298,6 +305,7 @@ export default function DashboardPage() {
   useEffect(() => {
     sessionKeyRef.current = null;
     pendingAgentTsRef.current = null;
+    persistConversationKeyRef.current = activeConversationKey || DRAFT_CHAT_KEY;
 
     Promise.resolve().then(() => {
       try {
@@ -313,7 +321,7 @@ export default function DashboardPage() {
         setChatMessages([]);
       }
     });
-  }, [chatCacheKey]);
+  }, [chatCacheKey, activeConversationKey]);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = messagesContainerRef.current;
@@ -356,15 +364,15 @@ export default function DashboardPage() {
   }, [chatMessages, chatCacheKey]);
 
   useEffect(() => {
-    if (isPending) return;
+    if (isPending || isDraftConversation) return;
 
     let cancelled = false;
 
     const bootstrapChat = async () => {
       try {
         const [sessionRes, messagesRes] = await Promise.all([
-          fetch(`/api/chat/session?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" }),
-          fetch(`/api/chat/messages?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" }),
+          fetch(`/api/chat/session?key=${encodeURIComponent(activeConversationKey)}`, { cache: "no-store" }),
+          fetch(`/api/chat/messages?key=${encodeURIComponent(activeConversationKey)}`, { cache: "no-store" }),
         ]);
 
         const sessionData = (await sessionRes.json()) as { sessionKey?: string };
@@ -389,7 +397,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [isPending, conversationKey]);
+  }, [isPending, isDraftConversation, activeConversationKey]);
 
   // region cache is initialized in useState lazy initializer.
 
@@ -540,13 +548,16 @@ export default function DashboardPage() {
         clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
 
-        void persistMessage({
-          sender: "agent",
-          content: text,
-          timestamp,
-          modelId,
-          usageLabel,
-        });
+        const persistKey = persistConversationKeyRef.current;
+        if (persistKey && persistKey !== DRAFT_CHAT_KEY) {
+          void persistMessage(persistKey, {
+            sender: "agent",
+            content: text,
+            timestamp,
+            modelId,
+            usageLabel,
+          });
+        }
       }
     }, tickMs);
   };
@@ -660,11 +671,6 @@ export default function DashboardPage() {
 
     const userMessage: ChatMessage = { id: sentAt, sender: "user", content: clean, timestamp: sentAt };
     setChatMessages((prev) => [...prev, userMessage]);
-    void persistMessage({
-      sender: "user",
-      content: clean,
-      timestamp: sentAt,
-    });
 
     const typingStartedAt = Date.now();
     pendingAgentTsRef.current = typingStartedAt;
@@ -672,7 +678,36 @@ export default function DashboardPage() {
     setIsAgentTyping(true);
 
     try {
-      const sessionKey = await ensureServerSessionKey();
+      let effectiveConversationKey = activeConversationKey;
+
+      if (!effectiveConversationKey) {
+        const createRes = await fetch("/api/chat/conversations", { method: "POST" });
+        const createData = (await createRes.json().catch(() => ({}))) as { key?: string };
+
+        if (!createRes.ok || !createData?.key) {
+          throw new Error("Failed to create conversation");
+        }
+
+        effectiveConversationKey = createData.key;
+        persistConversationKeyRef.current = effectiveConversationKey;
+
+        try {
+          localStorage.setItem(`mg2_chat_messages:${effectiveConversationKey}`, JSON.stringify([...chatMessages, userMessage]));
+        } catch {
+          // ignore cache write error
+        }
+
+        router.replace(`/chat?c=${encodeURIComponent(effectiveConversationKey)}`);
+      }
+
+      await persistMessage(effectiveConversationKey, {
+        sender: "user",
+        content: clean,
+        timestamp: sentAt,
+      });
+
+      const sessionKey = await ensureServerSessionKey(effectiveConversationKey);
+      persistConversationKeyRef.current = effectiveConversationKey;
 
       const response = await fetch("/api/openclaw", {
         method: "POST",
