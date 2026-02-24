@@ -200,7 +200,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
         <div className="flex flex-col gap-2 min-h-0">
           <h1 className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">chat history</h1>
 
-          <div className="flex flex-col gap-1 overflow-y-auto pr-1 min-h-0">
+          <div className="flex flex-col gap-1 overflow-y-auto overflow-x-visible pr-1 min-h-0">
             {grouped.length === 0 ? (
               <p className="text-xs text-white/50 font-ibm-plex-mono px-2 py-1">No chats yet</p>
             ) : (
@@ -256,7 +256,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
                                   {openMenuKey === item.key && (
                                     <div
-                                      className="absolute right-9 top-1/2 -translate-y-1/2 z-20 min-w-28 rounded-md border border-border bg-surface-card p-1 shadow-lg"
+                                      className="absolute left-full ml-1 top-1/2 -translate-y-1/2 z-30 min-w-28 rounded-md border border-border bg-surface-card p-1 shadow-lg"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <button
