@@ -101,7 +101,12 @@ export function Sidebar({ onLogout }: SidebarProps) {
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    const onDocClick = () => setOpenMenuKey(null);
+    const onDocClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-chat-menu-root='true']")) return;
+      setOpenMenuKey(null);
+    };
+
     document.addEventListener("click", onDocClick);
     return () => document.removeEventListener("click", onDocClick);
   }, []);
@@ -226,6 +231,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
                                 <div className="w-2 h-0 outline outline-offset-[-0.50px] outline-border" />
 
                                 <div
+                                  data-chat-menu-root="true"
                                   onClick={() => router.push(`/chat?c=${encodeURIComponent(item.key)}`)}
                                   className={`group relative flex-1 h-10 pl-2.5 pr-2 py-2 rounded-lg flex justify-start items-center gap-2.5 transition-all cursor-pointer ${
                                     isActive ? "bg-surface outline outline-border" : "outline outline-transparent hover:bg-surface-hover"
@@ -242,7 +248,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
                                       e.stopPropagation();
                                       setOpenMenuKey((prev) => (prev === item.key ? null : item.key));
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-white/70 hover:text-white px-1"
+                                    className={`z-10 h-7 w-7 inline-flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-surface-card ${openMenuKey === item.key ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
                                     aria-label="Chat options"
                                   >
                                     ⋯
