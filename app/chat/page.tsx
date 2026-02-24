@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useRef, useEffect, useMemo, useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { authClient, getCachedSession } from "@/lib/auth-client";
 import { ChatUsersCard } from "@/components/ui/ChatUsers";
 import { ChatCard } from "@/components/ui/ChatAgent";
 import { Sidebar } from "@/components/Sidebar";
@@ -276,6 +276,7 @@ function renderAssistantText(text: string) {
 
 export default function DashboardPage() {
   const { isPending } = authClient.useSession();
+  const cachedSession = getCachedSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeConversationKey = searchParams.get("c")?.trim() || "";
@@ -883,7 +884,7 @@ export default function DashboardPage() {
     setStarDrift({ x: 0, y: 0 });
   };
 
-  if (isPending) {
+  if (isPending && !cachedSession) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-3">
