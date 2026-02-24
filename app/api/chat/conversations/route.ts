@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/server-session";
 
 type ConversationRow = {
   key: string;
+  title: string | null;
   updated_at: string;
   last_content: string | null;
   last_ts: string | null;
@@ -20,7 +21,7 @@ export async function GET() {
   await ensureChatTables();
 
   const result = await db.query<ConversationRow>(
-    `select c.key, c.updated_at, lm.content as last_content, lm.ts::text as last_ts
+    `select c.key, c.title, c.updated_at, lm.content as last_content, lm.ts::text as last_ts
        from chat_conversations c
        join lateral (
          select content, ts
@@ -41,7 +42,7 @@ export async function GET() {
 
     return {
       key: row.key,
-      title: row.last_content?.trim()?.slice(0, 56) || "New Chat",
+      title: row.title?.trim() || row.last_content?.trim()?.slice(0, 56) || "New Chat",
       lastTimestamp: safeLastTs,
     };
   });

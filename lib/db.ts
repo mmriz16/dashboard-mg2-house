@@ -10,11 +10,17 @@ export async function ensureChatTables() {
       id bigserial primary key,
       user_id text not null,
       key text not null default 'default',
+      title text,
       openclaw_session_key text not null,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
       unique(user_id, key)
     );
+  `);
+
+  await db.query(`
+    alter table chat_conversations
+    add column if not exists title text;
   `);
 
   await db.query(`
