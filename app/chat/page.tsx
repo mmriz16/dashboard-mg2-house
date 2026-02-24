@@ -426,12 +426,14 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (loadedCacheKey !== chatCacheKey) return;
+
     try {
       localStorage.setItem(chatCacheKey, JSON.stringify(chatMessages));
     } catch {
       // ignore cache write error
     }
-  }, [chatMessages, chatCacheKey]);
+  }, [chatMessages, chatCacheKey, loadedCacheKey]);
 
   useEffect(() => {
     if (isPending || isDraftConversation) return;
