@@ -256,7 +256,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
 
                                   {openMenuKey === item.key && (
                                     <div
-                                      className="absolute right-1 top-9 z-20 min-w-28 rounded-md border border-border bg-surface-card p-1 shadow-lg"
+                                      className="absolute right-9 top-1/2 -translate-y-1/2 z-20 min-w-28 rounded-md border border-border bg-surface-card p-1 shadow-lg"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <button
