@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { TextEditor } from "@/components/ui/TextEditor";
 import { getModelMeta } from "@/lib/model-meta";
 import { Topbar } from "@/components/Topbar";
+import { useSearchParams } from "next/navigation";
 
 type ChatMessage = {
   id: number;
@@ -19,11 +20,10 @@ type ChatMessage = {
   usageLabel?: string;
 };
 
-const CHAT_CONVERSATION_KEY = "default";
-const CHAT_CACHE_KEY = `mg2_chat_messages:${CHAT_CONVERSATION_KEY}`;
+const DEFAULT_CHAT_CONVERSATION_KEY = "default";
 
 const INITIAL_MESSAGE_TIMESTAMP = Date.now() - 60000 * 5;
-const AGENT_DISPLAY_NAME = "Marsha Lenathea\u{1F47E}";
+const AGENT_DISPLAY_NAME = "Openclaw Agent\u{1F47E}";
 const STAR_COLORS = ["#dbeafe", "#bfdbfe", "#93c5fd", "#c7d2fe", "#ddd6fe", "#c4b5fd", "#a5b4fc"];
 
 const noise = (seed: number) => {
@@ -224,6 +224,9 @@ function renderAssistantText(text: string) {
 
 export default function DashboardPage() {
   const { isPending } = authClient.useSession();
+  const searchParams = useSearchParams();
+  const conversationKey = searchParams.get("c")?.trim() || DEFAULT_CHAT_CONVERSATION_KEY;
+  const chatCacheKey = `mg2_chat_messages:${conversationKey}`;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -240,7 +243,7 @@ export default function DashboardPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const raw = localStorage.getItem(CHAT_CACHE_KEY);
+      const raw = localStorage.getItem(chatCacheKey);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as ChatMessage[];
       return Array.isArray(parsed) ? parsed : [];
@@ -264,7 +267,7 @@ export default function DashboardPage() {
   const ensureServerSessionKey = async () => {
     if (sessionKeyRef.current) return sessionKeyRef.current;
 
-    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" });
+    const r = await fetch(`/api/chat/session?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" });
     const data = (await r.json()) as { sessionKey?: string };
     if (!r.ok || !data?.sessionKey) {
       throw new Error("Failed to resolve chat session key");
@@ -285,12 +288,32 @@ export default function DashboardPage() {
       await fetch("/api/chat/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...message, key: CHAT_CONVERSATION_KEY }),
+        body: JSON.stringify({ ...message, key: conversationKey }),
       });
     } catch {
       // non-blocking
     }
   };
+
+  useEffect(() => {
+    sessionKeyRef.current = null;
+    pendingAgentTsRef.current = null;
+
+    Promise.resolve().then(() => {
+      try {
+        const raw = localStorage.getItem(chatCacheKey);
+        if (!raw) {
+          setChatMessages([]);
+          return;
+        }
+
+        const parsed = JSON.parse(raw) as ChatMessage[];
+        setChatMessages(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setChatMessages([]);
+      }
+    });
+  }, [chatCacheKey]);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     const el = messagesContainerRef.current;
@@ -326,11 +349,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(chatMessages));
+      localStorage.setItem(chatCacheKey, JSON.stringify(chatMessages));
     } catch {
       // ignore cache write error
     }
-  }, [chatMessages]);
+  }, [chatMessages, chatCacheKey]);
 
   useEffect(() => {
     if (isPending) return;
@@ -340,8 +363,8 @@ export default function DashboardPage() {
     const bootstrapChat = async () => {
       try {
         const [sessionRes, messagesRes] = await Promise.all([
-          fetch(`/api/chat/session?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" }),
-          fetch(`/api/chat/messages?key=${encodeURIComponent(CHAT_CONVERSATION_KEY)}`, { cache: "no-store" }),
+          fetch(`/api/chat/session?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" }),
+          fetch(`/api/chat/messages?key=${encodeURIComponent(conversationKey)}`, { cache: "no-store" }),
         ]);
 
         const sessionData = (await sessionRes.json()) as { sessionKey?: string };
@@ -366,7 +389,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [isPending]);
+  }, [isPending, conversationKey]);
 
   // region cache is initialized in useState lazy initializer.
 
