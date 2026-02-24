@@ -42,7 +42,6 @@ export function Sidebar({ onLogout }: SidebarProps) {
   const activeDraftKey = searchParams.get("d") || "";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loadingConversations, setLoadingConversations] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Today: true,
     Yesterday: false,
@@ -72,7 +71,6 @@ export function Sidebar({ onLogout }: SidebarProps) {
         setConversations(data.conversations);
       }
     } finally {
-      setLoadingConversations(false);
     }
   };
 
@@ -136,9 +134,7 @@ export function Sidebar({ onLogout }: SidebarProps) {
           <h1 className="text-white/50 font-ibm-plex-mono text-xs uppercase tracking-widest">chat history</h1>
 
           <div className="flex flex-col gap-1 overflow-y-auto pr-1 min-h-0">
-            {loadingConversations ? (
-              <p className="text-xs text-white/50 font-ibm-plex-mono px-2 py-1">Loading...</p>
-            ) : grouped.length === 0 ? (
+            {grouped.length === 0 ? (
               <p className="text-xs text-white/50 font-ibm-plex-mono px-2 py-1">No chats yet</p>
             ) : (
               grouped.map(([label, items]) => {
@@ -184,3 +180,5 @@ export function Sidebar({ onLogout }: SidebarProps) {
     </div>
   );
 }
+
+
