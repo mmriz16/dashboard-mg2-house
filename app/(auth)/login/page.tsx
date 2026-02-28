@@ -1,8 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { InputGroup } from "@/components/ui/InputGroup";
+import { Alert } from "@/components/ui/Alert";
 import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,7 +21,7 @@ export default function LoginPage() {
         setError("");
         setLoading(true);
         try {
-            const { data, error: authError } = await authClient.signIn.email({
+            const { error: authError } = await authClient.signIn.email({
                 email,
                 password,
                 callbackURL: "/dashboard",
@@ -32,7 +32,7 @@ export default function LoginPage() {
             } else {
                 router.push("/dashboard");
             }
-        } catch (err) {
+        } catch {
             setError("Terjadi kesalahan. Coba lagi.");
         } finally {
             setLoading(false);
@@ -43,11 +43,15 @@ export default function LoginPage() {
         setError("");
         setLoading(true);
         try {
-            await authClient.signIn.social({
+            const result = await authClient.signIn.social({
                 provider: "google",
                 callbackURL: "/dashboard",
             });
-        } catch (err) {
+            if (result?.error) {
+                setError(result.error.message || "Google login gagal. Coba lagi.");
+                setLoading(false);
+            }
+        } catch {
             setError("Google login gagal. Coba lagi.");
             setLoading(false);
         }
@@ -62,9 +66,9 @@ export default function LoginPage() {
                 </div>
 
                 {error && (
-                    <div className="bg-red/10 border border-red/30 rounded-lg px-4 py-3 text-red text-sm font-ibm-plex-mono">
+                    <Alert variant="danger" className="justify-start">
                         {error}
-                    </div>
+                    </Alert>
                 )}
 
                 <div className="flex flex-col gap-2.5 w-full">

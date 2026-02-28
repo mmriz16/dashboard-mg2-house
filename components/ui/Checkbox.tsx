@@ -6,7 +6,7 @@ interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Checkbox: React.FC<CheckboxProps> = ({ label, className = '', ...props }) => {
   return (
-    <label className="inline-flex items-center gap-2.5 cursor-pointer group">
+    <label className={`inline-flex items-center gap-2.5 cursor-pointer group ${className}`}>
       <div className="relative flex items-center justify-center">
         <input
           type="checkbox"

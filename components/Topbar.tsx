@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { MG2Icon } from "@/components/ui/MG2Icon";
@@ -46,7 +46,7 @@ export function Topbar({
 }: TopbarProps) {
   const breadcrumbTitle = title.toUpperCase();
   const breadcrumbPrefix = subtitle?.toUpperCase();
-  const normalizedRegion = regionLabel?.trim();
+  const normalizedRegion = regionLabel?.trim().replace(/[•◆◇◈�]/g, "|");
   const isLocating = !normalizedRegion;
 
   return (
@@ -138,3 +138,4 @@ export function Topbar({
     </header>
   );
 }
+

@@ -14,7 +14,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MG2 House Dashboard",
+  title: "Dashboard Management",
   description: "Central command center of the MARZI-GEMI Family",
 };
 

@@ -1,0 +1,294 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+
+const DEFAULT_PREVIEW_IMAGE = "https://www.figma.com/api/mcp/asset/8e8a081b-251b-4b97-9708-72cdad457fa9";
+const DEFAULT_PREVIEW_LINK = "https://github.com/openclaw/openclaw/releases/tag/v2026.2.26";
+const DEFAULT_X_POST_URL = "https://x.com/openclaw";
+const RELEASES_URL = "https://github.com/openclaw/openclaw/releases";
+const RELEASES_LATEST_API = "https://api.github.com/repos/openclaw/openclaw/releases/latest";
+
+interface ReleaseNote {
+  icon: string;
+  text: string;
+}
+
+interface UpdateCardProps {
+  className?: string;
+  title?: string;
+  subtitle?: string;
+  currentVersion?: string;
+  notes?: ReleaseNote[];
+  previewImageUrl?: string;
+  previewLink?: string;
+  xPostUrl?: string;
+  onAction?: () => void;
+}
+
+function PowerIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
+      <path d="M8 2.667v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M4.4 4.267a5.333 5.333 0 1 0 7.2 0"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function resolveGithubReleasePreview(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.includes("github.com")) return null;
+
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    if (segments.length < 5) return null;
+    if (segments[2] !== "releases" || segments[3] !== "tag") return null;
+
+    const owner = segments[0];
+    const repo = segments[1];
+    const tag = segments.slice(4).join("/");
+    if (!owner || !repo || !tag) return null;
+
+    return `https://opengraph.githubassets.com/openclaw-dashboard/${owner}/${repo}/releases/tag/${tag}`;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeVersion(value: string): string {
+  return value.trim().toLowerCase().replace(/^v/, "");
+}
+
+function compareVersions(a: string, b: string): number {
+  const aParts = normalizeVersion(a).split(/[^0-9]+/).filter(Boolean).map(Number);
+  const bParts = normalizeVersion(b).split(/[^0-9]+/).filter(Boolean).map(Number);
+  const length = Math.max(aParts.length, bParts.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const aValue = aParts[index] ?? 0;
+    const bValue = bParts[index] ?? 0;
+    if (aValue > bValue) return 1;
+    if (aValue < bValue) return -1;
+  }
+
+  return 0;
+}
+
+function extractVersionFromText(text: string): string | null {
+  const match = text.match(/v?\d{4}\.\d{1,2}\.\d{1,2}/i);
+  return match?.[0] || null;
+}
+
+function extractXSource(url: string): { tweetId?: string; username?: string } {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.includes("x.com") && !parsed.hostname.includes("twitter.com")) return {};
+
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const statusIndex = segments.findIndex((segment) => segment === "status");
+    if (statusIndex >= 0) {
+      const tweetId = segments[statusIndex + 1];
+      return tweetId ? { tweetId } : {};
+    }
+
+    const username = segments[0];
+    if (!username) return {};
+    return { username };
+  } catch {
+    return {};
+  }
+}
+
+export function UpdateCard({
+  className = "",
+  title,
+  subtitle,
+  currentVersion = "2026.02.26",
+  notes = [],
+  previewImageUrl,
+  previewLink = DEFAULT_PREVIEW_LINK,
+  xPostUrl = DEFAULT_X_POST_URL,
+  onAction,
+}: UpdateCardProps) {
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [latestReleaseUrl, setLatestReleaseUrl] = useState<string>(RELEASES_URL);
+  const [xNotes, setXNotes] = useState<ReleaseNote[] | null>(null);
+  const [xPreviewImage, setXPreviewImage] = useState<string | null>(null);
+  const [xVersion, setXVersion] = useState<string | null>(null);
+  const xSource = useMemo(() => extractXSource(xPostUrl), [xPostUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(RELEASES_LATEST_API, {
+      headers: {
+        Accept: "application/vnd.github+json",
+      },
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { tag_name?: string; html_url?: string };
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        if (typeof data.tag_name === "string" && data.tag_name.trim()) {
+          setLatestVersion(data.tag_name.trim());
+        }
+        if (typeof data.html_url === "string" && data.html_url.trim()) {
+          setLatestReleaseUrl(data.html_url.trim());
+        }
+      })
+      .catch(() => {
+        // Keep defaults when GitHub API is unavailable.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!xSource.tweetId && !xSource.username) return;
+
+    let cancelled = false;
+    const query = new URLSearchParams();
+    if (xSource.tweetId) query.set("tweetId", xSource.tweetId);
+    if (xSource.username) query.set("username", xSource.username);
+
+    fetch(`/api/openclaw/x-release?${query.toString()}`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          notes?: Array<{ icon?: string; text?: string }>;
+          previewImageUrl?: string;
+          rawText?: string;
+        };
+      })
+      .then((payload) => {
+        if (cancelled || !payload) return;
+
+        if (Array.isArray(payload.notes) && payload.notes.length > 0) {
+          const normalizedNotes = payload.notes
+            .map((item) => ({ icon: item.icon?.trim() || "", text: item.text?.trim() || "" }))
+            .filter((item) => item.text.length > 0);
+
+          setXNotes(normalizedNotes.length > 0 ? normalizedNotes : []);
+        } else {
+          setXNotes([]);
+        }
+
+        if (typeof payload.previewImageUrl === "string" && payload.previewImageUrl.trim().length > 0) {
+          setXPreviewImage(payload.previewImageUrl.trim());
+        }
+
+        setXVersion(extractVersionFromText(payload.rawText || ""));
+      })
+      .catch(() => {
+        setXNotes([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [xSource]);
+
+  const isUpdateAvailable = useMemo(() => {
+    if (!latestVersion) return false;
+    return compareVersions(latestVersion, currentVersion) > 0;
+  }, [currentVersion, latestVersion]);
+
+  const isLoadingReleaseNotes = Boolean((xSource.tweetId || xSource.username) && xNotes === null);
+  const syncedVersion = normalizeVersion(latestVersion || currentVersion);
+  const resolvedTitle = title || `Openclaw ${syncedVersion}`;
+  const resolvedSubtitle = subtitle || syncedVersion;
+  const isXSyncedWithGithub = Boolean(
+    latestVersion &&
+      xVersion &&
+      normalizeVersion(latestVersion) === normalizeVersion(xVersion)
+  );
+  const notesToRender = isXSyncedWithGithub && xNotes && xNotes.length > 0 ? xNotes : notes;
+  const resolvedPreviewSrc =
+    (isXSyncedWithGithub ? xPreviewImage : null) ||
+    resolveGithubReleasePreview(latestReleaseUrl) ||
+    resolveGithubReleasePreview(previewLink) ||
+    previewImageUrl ||
+    DEFAULT_PREVIEW_IMAGE;
+
+  return (
+    <section
+      className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card p-1 ${className}`}
+    >
+      <div className="rounded-[10px] bg-gradient-to-r from-[#FB2C36]/10 to-transparent px-4 py-4 flex items-center gap-2">
+        <p className="text-[38px] leading-none">{"\uD83E\uDD9E"}</p>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-base text-white leading-none">{resolvedTitle}</h2>
+          <p className="mt-1 text-xs text-white/50 leading-none font-ibm-plex-mono">{resolvedSubtitle}</p>
+        </div>
+        {isUpdateAvailable ? (
+          <Button
+            type="button"
+            variant="primary"
+            leftIcon={<PowerIcon />}
+            className="size-10 shrink-0 p-0 text-green bg-green/10 border-transparent hover:bg-green/20"
+            onClick={() => {
+              if (onAction) {
+                onAction();
+                return;
+              }
+              window.open(latestReleaseUrl, "_blank", "noopener,noreferrer");
+            }}
+            aria-label="Open latest OpenClaw release"
+          />
+        ) : (
+          <Badge text="LATEST" style="success" className="h-4 px-[6px] py-0 leading-[16px]" />
+        )}
+      </div>
+
+      <div className="rounded-[10px] flex min-h-0 flex-1 flex-col justify-between">
+        {isLoadingReleaseNotes ? (
+          <div className="p-2 text-sm text-white/60">Getting Release Note...</div>
+        ) : notesToRender.length > 0 ? (
+          <ul className="space-y-1.5 p-2">
+            {notesToRender.map((note) => (
+              <li key={`${note.icon}-${note.text}`} className="flex items-center gap-1 text-sm text-white">
+                {note.icon ? <span className="shrink-0">{note.icon}</span> : null}
+                <span className="truncate">{note.text}</span>
+              </li>
+            ))}
+          </ul>
+        ) : !isXSyncedWithGithub && xVersion ? (
+          <div className="p-2 text-sm text-white/60">Waiting for synced X release notes for {normalizeVersion(latestVersion || "")}.</div>
+        ) : (
+          <div className="p-2 text-sm text-white/60">No release notes available.</div>
+        )}
+
+        <div className="aspect-[564/295] overflow-hidden rounded-[10px] bg-white border border-border">
+          <a href={latestReleaseUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={resolvedPreviewSrc}
+              alt="OpenClaw release preview"
+              className="h-full w-full object-cover"
+              onError={(event) => {
+                const img = event.currentTarget;
+                if (img.src.includes(DEFAULT_PREVIEW_IMAGE)) return;
+                img.src = DEFAULT_PREVIEW_IMAGE;
+              }}
+            />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default UpdateCard;

@@ -339,6 +339,61 @@ import { SidebarItem } from "@/components/SidebarItem"
 
 ---
 
+### SegmentedControl
+
+📁 `components/ui/SegmentedControl.tsx`
+
+Tab switcher / segmented control. Flexible untuk 2+ item.
+
+```tsx
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
+
+// Basic (uncontrolled)
+<SegmentedControl
+  items={[
+    { label: "Server", value: "server" },
+    { label: "Openclaw", value: "openclaw" },
+  ]}
+  defaultValue="server"
+  onChange={(val) => console.log(val)}
+/>
+
+// 3+ tabs
+<SegmentedControl
+  items={[
+    { label: "All", value: "all" },
+    { label: "Active", value: "active" },
+    { label: "Archived", value: "archived" },
+  ]}
+/>
+
+// Controlled
+const [tab, setTab] = useState("server")
+<SegmentedControl items={items} value={tab} onChange={setTab} />
+
+// With icons
+<SegmentedControl
+  items={[
+    { label: "Server", value: "server", icon: <ServerIcon /> },
+    { label: "Agent", value: "agent", icon: <BotIcon /> },
+  ]}
+/>
+```
+
+**Props**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `SegmentedControlItem[]` | **required** | Array of tab items (`{ label, value, icon? }`) |
+| `value` | `string` | — | Controlled active value |
+| `defaultValue` | `string` | `items[0].value` | Default active tab (uncontrolled) |
+| `onChange` | `(value: string) => void` | — | Callback saat tab berubah |
+| `className` | `string` | — | Class tambahan |
+
+**Style**: container `bg-surface-card` + `outline-border` + `rounded-lg`, active tab `bg-surface` + `outline-border`
+
+---
+
 ## 📐 Layout Patterns
 
 ### Auth Page (Login / Register)
