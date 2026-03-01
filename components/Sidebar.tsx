@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MenuItem } from "@/components/MenuItem";
 import { ProfileCard } from "@/components/ProfileCard";
 import { MG2Icon } from "@/components/ui/MG2Icon";
@@ -41,6 +41,14 @@ function toGroupLabel(ts: number) {
 }
 
 export function Sidebar({ onLogout }: SidebarProps) {
+  return (
+    <React.Suspense fallback={<div className="hidden md:flex md:flex-row w-75 h-screen border-r bg-surface-card border-border" />}>
+      <SidebarContent onLogout={onLogout} />
+    </React.Suspense>
+  );
+}
+
+function SidebarContent({ onLogout }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
