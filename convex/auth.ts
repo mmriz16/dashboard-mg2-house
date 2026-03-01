@@ -16,6 +16,7 @@ const trustedOrigins = Array.from(
       process.env.BETTER_AUTH_URL,
       "http://localhost:3000",
       "http://localhost:3001",
+      "https://dashboard.termicons.com",
     ].filter((v): v is string => Boolean(v))
   )
 );
