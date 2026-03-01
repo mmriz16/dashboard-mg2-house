@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SidebarWrapper as Sidebar } from "@/components/SidebarWrapper";
+import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { authClient, clearCachedSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { authClient, clearCachedSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/SidebarWrapper";
+import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { GatewayCard } from "@/components/ui/(openclaw)/(card)/gateway";
 import UpdateCard from "@/components/ui/(openclaw)/(card)/update";

@@ -6,7 +6,7 @@ import {
     clearCachedSession,
 } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { SidebarWrapper as Sidebar } from "@/components/SidebarWrapper";
+import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 
 export default function DashboardPage() {
@@ -37,24 +37,24 @@ export default function DashboardPage() {
         };
 
         const checkLocation = async () => {
-      try {
-        const r = await fetch("/api/openclaw/location", { cache: "no-store" });
-        const data = (await r.json()) as { regionLabel?: string };
-        if (cancelled) return;
-        if (typeof data?.regionLabel === "string" && data.regionLabel.trim()) {
-          const normalized = data.regionLabel.trim();
-          setRegionLabel(normalized);
-          try {
-            localStorage.setItem(REGION_CACHE_KEY, normalized);
-          } catch {
-            // ignore cache write error
-          }
-        }
-      } catch {
-        // keep fallback label
-      }
-    };
-    checkHealth();
+            try {
+                const r = await fetch("/api/openclaw/location", { cache: "no-store" });
+                const data = (await r.json()) as { regionLabel?: string };
+                if (cancelled) return;
+                if (typeof data?.regionLabel === "string" && data.regionLabel.trim()) {
+                    const normalized = data.regionLabel.trim();
+                    setRegionLabel(normalized);
+                    try {
+                        localStorage.setItem(REGION_CACHE_KEY, normalized);
+                    } catch {
+                        // ignore cache write error
+                    }
+                }
+            } catch {
+                // keep fallback label
+            }
+        };
+        checkHealth();
         checkLocation();
         const healthId = setInterval(checkHealth, 15000);
         const locationId = setInterval(checkLocation, 300000);
