@@ -92,7 +92,7 @@ function AlertItemCard({ item }: { item: AlertItem }) {
 export function AlertsCard({ className = "", title = "Recent Alerts", items = defaultItems, onViewAll }: AlertsCardProps) {
   return (
     <section className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
-      <div className="flex items-center justify-between px-4 py-2.5">
+      <div className="flex items-center justify-between px-4 py-4">
         <h2 className="text-base leading-none text-white">{title}</h2>
         <button
           type="button"

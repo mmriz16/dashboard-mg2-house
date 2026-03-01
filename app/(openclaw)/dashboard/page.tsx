@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { authClient, clearCachedSession } from "@/lib/auth-client";
@@ -106,7 +106,7 @@ export default function DashboardPage() {
           systemStatusLabel={isGatewayOnline ? "Server Online" : "Server Offline"}
         />
 
-        <div className="flex flex-col gap-4 p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 p-6">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-manrope font-medium text-white">Welcome back, {displayName}!</h1>
             <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
@@ -117,14 +117,22 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-2.5 w-full">
             <GatewayCard autoFetch={true} />
             <div className="flex gap-2.5 w-full">
-              <UpdateCard className="max-w-[400px]"/>
-              <ActivityLogCard />
+              <div className="shrink-0 max-w-[400px]">
+                <UpdateCard />
+              </div>
+              <div className="flex-1 min-w-0 relative">
+                <div className="absolute inset-0">
+                  <ActivityLogCard autoFetch={true} />
+                </div>
+              </div>
+              <div className="shrink-0 max-w-[400px]">
                 <AlertsCard
                   items={alertItems}
                   onViewAll={() => {
                     router.push("/openclaw/agent/automations");
                   }}
                 />
+              </div>
             </div>
           </div>
         </div>

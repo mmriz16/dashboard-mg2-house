@@ -212,8 +212,8 @@ export function UpdateCard({
   const resolvedSubtitle = subtitle || syncedVersion;
   const isXSyncedWithGithub = Boolean(
     latestVersion &&
-      xVersion &&
-      normalizeVersion(latestVersion) === normalizeVersion(xVersion)
+    xVersion &&
+    normalizeVersion(latestVersion) === normalizeVersion(xVersion)
   );
   const notesToRender = isXSyncedWithGithub && xNotes && xNotes.length > 0 ? xNotes : notes;
   const resolvedPreviewSrc =
@@ -239,12 +239,24 @@ export function UpdateCard({
             variant="primary"
             leftIcon={<PowerIcon />}
             className="size-10 shrink-0 p-0 text-green bg-green/10 border-transparent hover:bg-green/20"
-            onClick={() => {
+            onClick={async () => {
               if (onAction) {
                 onAction();
                 return;
               }
-              window.open(latestReleaseUrl, "_blank", "noopener,noreferrer");
+
+              try {
+                const res = await fetch("/api/openclaw/update", { method: "POST" });
+                const data = await res.json();
+
+                if (data?.success) {
+                  alert("Command executed successfully.");
+                } else {
+                  alert("Command failed: " + (data?.error || "Unknown error"));
+                }
+              } catch (e) {
+                alert("Request failed: " + ((e instanceof Error) ? e.message : "Unknown error"));
+              }
             }}
             aria-label="Open latest OpenClaw release"
           />
@@ -271,7 +283,7 @@ export function UpdateCard({
           <div className="p-2 text-sm text-white/60">No release notes available.</div>
         )}
 
-        <div className="aspect-[564/295] overflow-hidden rounded-[10px] bg-white border border-border">
+        <div className="aspect-[564/295] overflow-hidden rounded-[10px]">
           <a href={latestReleaseUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

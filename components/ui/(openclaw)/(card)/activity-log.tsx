@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useEffect, useState, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 
 type ActivityStatus = "success" | "info" | "warning" | "error";
@@ -13,7 +14,8 @@ interface ActivityItem {
 interface ActivityLogCardProps {
   className?: string;
   title?: string;
-  items?: ActivityItem[];
+  initialItems?: ActivityItem[];
+  autoFetch?: boolean;
 }
 
 const badgeStyleMap: Record<ActivityStatus, "success" | "info" | "warning" | "danger"> = {
@@ -23,40 +25,78 @@ const badgeStyleMap: Record<ActivityStatus, "success" | "info" | "warning" | "da
   error: "danger",
 };
 
+const MAX_ITEMS = 30;
+
 const defaultItems: ActivityItem[] = [
-  { time: "07:15", message: "OpenClaw core service started (PID 1842)", status: "success" },
-  { time: "07:15", message: "Telegram bot connected (session active)", status: "success" },
-  { time: "18:42", message: "WhatsApp multi-device session initialized", status: "success" },
-  { time: "18:42", message: "LLM backend connected (Claude 3.5 Sonnet)", status: "success" },
-  { time: "07:15", message: "18 skills loaded (browser, email, calendar, files, etc)", status: "info" },
-  { time: "07:15", message: "User command received: ringkas email hari ini", status: "success" },
-  { time: "07:15", message: "Browser tool opened new tab (google.com)", status: "info" },
-  { time: "07:15", message: "High token usage detected (87% of limit)", status: "warning" },
-  { time: "07:15", message: "Failed to delete file (permission denied on /tmp)", status: "error" },
-  { time: "07:15", message: "Cron job: Daily backup to Oracle Cloud Object Storage", status: "success" },
-  { time: "18:42", message: "New user login from Jakarta (Terminal)", status: "success" },
-  { time: "18:42", message: "DNS query successful (openclaw.ai resolved)", status: "info" },
-  { time: "18:42", message: "Agent idle mode activated (no task for 30 minutes)", status: "info" },
-  { time: "18:42", message: "Scheduled task executed: VirusTotal scan file", status: "success" },
+  { time: "--:--", message: "Loading activities...", status: "info" },
 ];
 
 export function ActivityLogCard({
   className = "",
   title = "Activity Log",
-  items = defaultItems,
+  initialItems,
+  autoFetch = true,
 }: ActivityLogCardProps) {
+  const [items, setItems] = useState<ActivityItem[]>(initialItems || defaultItems);
+  const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScroll = useRef(true);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      shouldAutoScroll.current = scrollTop + clientHeight >= scrollHeight - 50;
+    }
+  };
+
+  useEffect(() => {
+    if (!autoFetch) return;
+
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch("/api/oracle-gateway/activity", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(15000)
+        });
+        const data = await res.json();
+
+        if (data.items && Array.isArray(data.items)) {
+          setItems(data.items.slice(0, MAX_ITEMS));
+          setError(null);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to fetch");
+      }
+    };
+
+    fetchActivities();
+    const interval = setInterval(fetchActivities, 10000);
+    return () => clearInterval(interval);
+  }, [autoFetch]);
+
+  useEffect(() => {
+    if (shouldAutoScroll.current && scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [items]);
+
   return (
-    <section className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
-      <div className="px-4 py-2.5">
+    <section className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card ${className}`}>
+      <div className="p-4 flex items-center justify-between shrink-0">
         <h2 className="text-base leading-none text-white">{title}</h2>
+        {error && <span className="text-xs text-red">{error}</span>}
       </div>
 
-      <div className="rounded-[10px] bg-surface p-2 flex-1 min-h-0 overflow-y-auto hide-scrollbar">
-        <ul className="space-y-2.5">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto rounded-[10px] bg-surface px-4 py-2 hide-scrollbar m-1"
+      >
+        <ul className="space-y-1">
           {items.map((item, index) => (
             <li key={`${item.time}-${index}-${item.message}`} className="flex items-start gap-2">
-              <p className="w-10 shrink-0 font-ibm-plex-mono text-xs leading-[1.1rem] text-white/50">{item.time}</p>
-              <p className="min-w-0 flex-1 text-xs leading-[1.1rem] text-white">{item.message}</p>
+              <p className="w-12 shrink-0 font-ibm-plex-mono text-xs leading-[1.1rem] text-white/50">{item.time}</p>
+              <p className="min-w-0 flex-1 text-xs leading-[1.1rem] text-white break-words">{item.message}</p>
               <Badge
                 text={item.status}
                 style={badgeStyleMap[item.status]}
