@@ -7,6 +7,18 @@ const ORACLE_SSH_KEY = process.env.ORACLE_SSH_KEY || "C:\\Users\\miftakhul.rizky
 async function sshExec(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const { exec } = require("child_process");
+
+    if (ORACLE_SERVER === "127.0.0.1" || ORACLE_SERVER === "localhost") {
+      exec(command, { timeout: 60000, maxBuffer: 1024 * 1024 }, (error: Error | null, stdout: string, stderr: string) => {
+        if (error) {
+          reject(new Error(stderr || error.message));
+          return;
+        }
+        resolve(stdout);
+      });
+      return;
+    }
+
     const sshKeyPath = ORACLE_SSH_KEY.replace(/\\/g, "\\\\");
     const sshCmd = `ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${ORACLE_USER}@${ORACLE_SERVER} '${command}'`;
 
