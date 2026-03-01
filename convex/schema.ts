@@ -1,4 +1,4 @@
-﻿import { defineSchema, defineTable } from "convex/server";
+import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
@@ -10,4 +10,25 @@ export default defineSchema({
     status: v.string(),
     createdAt: v.number(),
   }),
+  
+  chat_conversations: defineTable({
+    userId: v.string(),
+    key: v.string(),
+    title: v.optional(v.string()),
+    pinned: v.boolean(),
+    openclawSessionKey: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_key", ["userId", "key"]),
+  
+  chat_messages: defineTable({
+    userId: v.string(),
+    conversationKey: v.string(),
+    sender: v.union(v.literal("user"), v.literal("agent")),
+    content: v.string(),
+    ts: v.number(),
+    modelId: v.optional(v.string()),
+    usageLabel: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user_conv_ts", ["userId", "conversationKey", "ts"]),
 });
