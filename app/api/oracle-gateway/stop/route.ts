@@ -8,8 +8,8 @@ async function sshExec(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const { exec } = require("child_process");
     const sshKeyPath = ORACLE_SSH_KEY.replace(/\\/g, "\\\\");
-    const sshCmd = `ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${ORACLE_USER}@${ORACLE_SERVER} "${command.replace(/"/g, '\\"')}"`;
-    
+    const sshCmd = `ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${ORACLE_USER}@${ORACLE_SERVER} '${command}'`;
+
     exec(sshCmd, { timeout: 60000, maxBuffer: 1024 * 1024 }, (error: Error | null, stdout: string, stderr: string) => {
       if (error) {
         reject(new Error(stderr || error.message));
@@ -24,7 +24,7 @@ export async function POST() {
   try {
     // Stop the gateway using systemctl --user (since it's a user service)
     await sshExec("systemctl --user stop openclaw-gateway || openclaw gateway stop");
-    
+
     return NextResponse.json({
       success: true,
       message: "Gateway stop initiated",
@@ -32,7 +32,7 @@ export async function POST() {
     });
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : "Unknown error";
-    
+
     return NextResponse.json({
       success: false,
       error: errorMessage,
