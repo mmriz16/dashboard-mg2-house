@@ -1,95 +1,31 @@
 import { NextResponse } from "next/server";
-import { db, ensureChatTables } from "@/lib/db";
+import { convex } from "@/lib/convex-server";
+import { api } from "@/convex/_generated/api";
 import { getServerSession } from "@/lib/server-session";
 
 const DEFAULT_CONVERSATION_KEY = "default";
 
-const STOP_WORDS = new Set([
-  "yang","dan","atau","dengan","untuk","dari","ke","di","ini","itu","saya","aku","kamu","kami","kita","the","a","an","is","are","to","of","in","on","for","please","tolong","bisa","jadi","buat","dari","agar","nya","ya","ok","oke"
-]);
-
-function summarizeConversation(contents: string[]): string {
-  const joined = contents.join(" ").replace(/\s+/g, " ").trim();
-  if (!joined) return "New Chat";
-
-  const firstSentence = joined
-    .split(/[.!?\n]/)
-    .map((s) => s.trim())
-    .find(Boolean);
-
-  if (firstSentence) {
-    const tokens = firstSentence
-      .split(/\s+/)
-      .map((w) => w.replace(/[^a-zA-Z0-9-]/g, ""))
-      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w.toLowerCase()))
-      .slice(0, 3);
-
-    if (tokens.length >= 2) {
-      return tokens
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(" ");
-    }
-  }
-
-  const words = joined.toLowerCase().match(/[a-zA-Z0-9]{3,}/g) || [];
-  const freq = new Map<string, number>();
-
-  for (const w of words) {
-    if (STOP_WORDS.has(w)) continue;
-    freq.set(w, (freq.get(w) || 0) + 1);
-  }
-
-  const top = Array.from(freq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([w]) => w);
-
-  if (top.length === 0) return "New Chat";
-
-  return top.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
-
 export async function GET(req: Request) {
   const session = await getServerSession();
   const userId = session?.user?.id;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  await ensureChatTables();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const conversationKey =
     new URL(req.url).searchParams.get("key")?.trim() || DEFAULT_CONVERSATION_KEY;
 
-  const result = await db.query<{
-    sender: "user" | "agent";
-    content: string;
-    ts: number;
-    model_id: string | null;
-    usage_label: string | null;
-  }>(
-    `select sender, content, ts, model_id, usage_label
-       from chat_messages
-      where user_id = $1 and conversation_key = $2
-      order by ts asc
-      limit 300`,
-    [userId, conversationKey]
-  );
-
-  const messages = result.rows.map((row, idx) => {
-    const ts = Number(row.ts);
-    const safeTs = Number.isFinite(ts) ? ts : Date.now();
-
-    return {
-      id: safeTs + idx,
-      sender: row.sender,
-      content: row.content,
-      timestamp: safeTs,
-      modelId: row.model_id || undefined,
-      usageLabel: row.usage_label || undefined,
-    };
+  const rows = await convex.query(api.chat.getMessages, {
+    userId,
+    conversationKey,
   });
+
+  const messages = rows.map((row, idx) => ({
+    id: row.ts + idx,
+    sender: row.sender,
+    content: row.content,
+    timestamp: row.ts,
+    modelId: row.modelId || undefined,
+    usageLabel: row.usageLabel || undefined,
+  }));
 
   return NextResponse.json({ messages });
 }
@@ -97,10 +33,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await getServerSession();
   const userId = session?.user?.id;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as {
     key?: string;
@@ -120,50 +53,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  await ensureChatTables();
-
-  await db.query(
-    `insert into chat_messages (user_id, conversation_key, sender, content, ts, model_id, usage_label)
-     values ($1, $2, $3, $4, $5, $6, $7)`,
-    [
-      userId,
-      conversationKey,
-      sender,
-      content,
-      timestamp,
-      body.modelId || null,
-      body.usageLabel || null,
-    ]
-  );
-
-  const recentUser = await db.query<{ content: string }>(
-    `select content
-       from chat_messages
-      where user_id = $1 and conversation_key = $2 and sender = 'user'
-      order by ts desc
-      limit 30`,
-    [userId, conversationKey]
-  );
-
-  const recentAny = await db.query<{ content: string }>(
-    `select content
-       from chat_messages
-      where user_id = $1 and conversation_key = $2
-      order by ts desc
-      limit 30`,
-    [userId, conversationKey]
-  );
-
-  const sourceRows = recentUser.rows.length > 0 ? recentUser.rows : recentAny.rows;
-  const title = summarizeConversation(sourceRows.map((r) => r.content));
-
-  await db.query(
-    `update chat_conversations
-        set updated_at = now(),
-            title = $3
-      where user_id = $1 and key = $2`,
-    [userId, conversationKey, title]
-  );
+  await convex.mutation(api.chat.addMessageWithTitle, {
+    userId,
+    conversationKey,
+    sender,
+    content,
+    timestamp,
+    modelId: body.modelId || undefined,
+    usageLabel: body.usageLabel || undefined,
+  });
 
   return NextResponse.json({ ok: true });
 }

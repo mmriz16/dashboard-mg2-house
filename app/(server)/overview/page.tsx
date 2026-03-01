@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { StatCard } from "@/components/ui/StatCard";
 import { authClient, clearCachedSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
+import { SidebarWrapper as Sidebar } from "@/components/SidebarWrapper";
 import { Topbar } from "@/components/Topbar";
 
 type ServerMetrics = {

@@ -79,9 +79,9 @@ function StopIcon() {
 
 function GatewayMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-[150px] flex-1 px-4 first:pl-0 last:pr-0 border-l border-border first:border-l-0">
+    <div className="min-w-0 flex-1 px-4 first:pl-0 last:pr-0 sm:border-l sm:border-border sm:first:border-l-0">
       <p className="text-[10px] text-white/50 leading-none">{label}</p>
-      <p className="mt-2 font-ibm-plex-mono text-[26px] leading-none text-white whitespace-nowrap">{value}</p>
+      <p className="mt-2 font-ibm-plex-mono text-lg sm:text-[26px] leading-none text-white whitespace-nowrap">{value}</p>
     </div>
   );
 }
@@ -99,7 +99,7 @@ export function GatewayCard({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/oracle-gateway/status", { 
+      const res = await fetch("/api/oracle-gateway/status", {
         cache: "no-store",
         signal: AbortSignal.timeout(15000)
       });
@@ -122,7 +122,7 @@ export function GatewayCard({
   };
 
   const handleRefresh = () => fetchStatus();
-  
+
   const handleRestart = async () => {
     setLoading(true);
     try {
@@ -136,7 +136,7 @@ export function GatewayCard({
       setLoading(false);
     }
   };
-  
+
   const handleStop = async () => {
     setLoading(true);
     try {
@@ -168,15 +168,15 @@ export function GatewayCard({
   const uptime = data?.uptime || "-";
 
   return (
-    <section className={`w-full rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
-      <div className="flex flex-col gap-3 px-4 py-2.5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h2 className="text-base text-white leading-none">Openclaw Gateway</h2>
-          <div className="flex items-center gap-3 text-xs leading-none">
+    <section className={`w-full max-w-full rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
+      <div className="flex flex-col gap-3 px-3 sm:px-4 py-2.5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-2">
+          <h2 className="text-sm sm:text-base text-white leading-none">Openclaw Gateway</h2>
+          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs leading-none">
             <span className="text-white/50">Last heartbeat</span>
             <span className="font-ibm-plex-mono text-white">{lastHeartbeat}</span>
           </div>
-          <div className="flex items-center gap-3 text-xs leading-none">
+          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs leading-none">
             <span className="text-white/50">Last probe</span>
             <span className="font-ibm-plex-mono text-white">{lastProbe}</span>
           </div>
@@ -190,7 +190,7 @@ export function GatewayCard({
             type="button"
             variant="primary"
             leftIcon={<RefreshIcon />}
-            className="h-10 min-w-[98px] border-border"
+            className="h-9 sm:h-10 sm:min-w-[98px] text-xs sm:text-sm border-border"
             onClick={handleRefresh}
             disabled={loading}
           >
@@ -200,7 +200,7 @@ export function GatewayCard({
             type="button"
             variant="primary"
             leftIcon={<RestartIcon />}
-            className="h-10 min-w-[98px] border-border"
+            className="h-9 sm:h-10 sm:min-w-[98px] text-xs sm:text-sm border-border"
             onClick={handleRestart}
             disabled={loading}
           >
@@ -210,7 +210,7 @@ export function GatewayCard({
             type="button"
             variant="secondary"
             leftIcon={<StopIcon />}
-            className="h-10 min-w-[86px] text-[#FB2C36] border-transparent bg-red/10 text-red hover:bg-red/20"
+            className="h-9 sm:h-10 sm:min-w-[86px] text-xs sm:text-sm text-[#FB2C36] border-transparent bg-red/10 text-red hover:bg-red/20"
             onClick={handleStop}
             disabled={loading}
           >
@@ -219,8 +219,8 @@ export function GatewayCard({
         </div>
       </div>
 
-      <div className="rounded-[10px] bg-surface px-4 py-4 overflow-x-auto hide-scrollbar">
-        <div className="flex min-w-[760px] items-center">
+      <div className="rounded-[10px] bg-surface px-4 py-4">
+        <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center">
           <GatewayMetric label="Channel" value={channel} />
           <GatewayMetric label="Ports" value={port} />
           <GatewayMetric label="PID" value={pid} />

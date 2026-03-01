@@ -60,8 +60,8 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="flex w-1/2 h-screen flex-col gap-4 border-r bg-surface-card border-border justify-center items-center">
-            <div className="md:w-[500px] w-full flex gap-6 flex-col">
+        <div className="flex w-full md:w-1/2 min-h-screen flex-col gap-4 border-r bg-surface-card border-border justify-center items-center px-6 py-10 overflow-y-auto">
+            <div className="w-full max-w-[500px] flex gap-6 flex-col">
                 <div className="flex flex-col gap-1 w-full">
                     <h1 className="text-2xl font-manrope font-bold text-white">Register</h1>
                     <p className="text-white/70 font-ibm-plex-mono text-xs uppercase">Create your account to get started</p>

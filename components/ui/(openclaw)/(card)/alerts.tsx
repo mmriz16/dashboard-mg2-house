@@ -75,9 +75,9 @@ function AlertItemCard({ item }: { item: AlertItem }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="font-ibm-plex-mono text-xs uppercase text-white/50">{item.timeLabel}</p>
-        <p className={isWarning ? "mt-1 text-base leading-tight text-yellow" : "mt-1 text-base leading-tight text-blue"}>{item.title}</p>
-        <p className="mt-1 font-ibm-plex-mono text-xs uppercase text-white/50">Source:{item.source}</p>
+        <p className="font-ibm-plex-mono text-[10px] sm:text-xs uppercase text-white/50">{item.timeLabel}</p>
+        <p className={isWarning ? "mt-1 text-sm sm:text-base leading-tight text-yellow" : "mt-1 text-sm sm:text-base leading-tight text-blue"}>{item.title}</p>
+        <p className="mt-1 font-ibm-plex-mono text-[10px] sm:text-xs uppercase text-white/50">Source:{item.source}</p>
       </div>
 
       <Badge
@@ -93,7 +93,7 @@ export function AlertsCard({ className = "", title = "Recent Alerts", items = de
   return (
     <section className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
       <div className="flex items-center justify-between px-4 py-4">
-        <h2 className="text-base leading-none text-white">{title}</h2>
+        <h2 className="text-sm sm:text-base leading-none text-white">{title}</h2>
         <button
           type="button"
           onClick={onViewAll}

@@ -227,11 +227,11 @@ export function UpdateCard({
     <section
       className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card p-1 ${className}`}
     >
-      <div className="rounded-[10px] bg-gradient-to-r from-[#FB2C36]/10 to-transparent px-4 py-4 flex items-center gap-2">
-        <p className="text-[38px] leading-none">{"\uD83E\uDD9E"}</p>
+      <div className="rounded-[10px] bg-gradient-to-r from-[#FB2C36]/10 to-transparent px-3 sm:px-4 py-3 sm:py-4 flex items-center gap-1.5 sm:gap-2">
+        <p className="text-[24px] sm:text-[38px] leading-none shrink-0">{"\uD83E\uDD9E"}</p>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base text-white leading-none">{resolvedTitle}</h2>
-          <p className="mt-1 text-xs text-white/50 leading-none font-ibm-plex-mono">{resolvedSubtitle}</p>
+          <h2 className="truncate text-sm sm:text-base text-white leading-none">{resolvedTitle}</h2>
+          <p className="mt-1 text-[10px] sm:text-xs text-white/50 leading-none font-ibm-plex-mono">{resolvedSubtitle}</p>
         </div>
         {isUpdateAvailable ? (
           <Button
@@ -261,26 +261,26 @@ export function UpdateCard({
             aria-label="Open latest OpenClaw release"
           />
         ) : (
-          <Badge text="LATEST" style="success" className="h-4 px-[6px] py-0 leading-[16px]" />
+          <Badge text="LATEST" style="success" className="shrink-0 h-4 px-[6px] py-0 leading-[16px]" />
         )}
       </div>
 
       <div className="rounded-[10px] flex min-h-0 flex-1 flex-col justify-between">
         {isLoadingReleaseNotes ? (
-          <div className="p-2 text-sm text-white/60">Getting Release Note...</div>
+          <div className="p-2 text-xs sm:text-sm text-white/60">Getting Release Note...</div>
         ) : notesToRender.length > 0 ? (
           <ul className="space-y-1.5 p-2">
             {notesToRender.map((note) => (
-              <li key={`${note.icon}-${note.text}`} className="flex items-center gap-1 text-sm text-white">
+              <li key={`${note.icon}-${note.text}`} className="flex items-start gap-1 text-xs sm:text-sm text-white">
                 {note.icon ? <span className="shrink-0">{note.icon}</span> : null}
-                <span className="truncate">{note.text}</span>
+                <span className="break-words min-w-0">{note.text}</span>
               </li>
             ))}
           </ul>
         ) : !isXSyncedWithGithub && xVersion ? (
-          <div className="p-2 text-sm text-white/60">Waiting for synced X release notes for {normalizeVersion(latestVersion || "")}.</div>
+          <div className="p-2 text-xs sm:text-sm text-white/60">Waiting for synced X release notes for {normalizeVersion(latestVersion || "")}.</div>
         ) : (
-          <div className="p-2 text-sm text-white/60">No release notes available.</div>
+          <div className="p-2 text-xs sm:text-sm text-white/60">No release notes available.</div>
         )}
 
         <div className="aspect-[564/295] overflow-hidden rounded-[10px]">

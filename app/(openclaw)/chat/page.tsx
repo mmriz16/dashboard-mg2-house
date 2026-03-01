@@ -5,7 +5,7 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { ChatUsersCard } from "@/components/ui/ChatUsers";
 import { ChatCard } from "@/components/ui/ChatAgent";
-import { Sidebar } from "@/components/Sidebar";
+import { SidebarWrapper as Sidebar } from "@/components/SidebarWrapper";
 import { TextEditor } from "@/components/ui/TextEditor";
 import { getModelMeta } from "@/lib/model-meta";
 import { Topbar } from "@/components/Topbar";

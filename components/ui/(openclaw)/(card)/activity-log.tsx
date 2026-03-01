@@ -83,7 +83,7 @@ export function ActivityLogCard({
   return (
     <section className={`w-full h-full min-h-0 flex flex-col overflow-hidden rounded-[14px] border border-border bg-surface-card ${className}`}>
       <div className="p-4 flex items-center justify-between shrink-0">
-        <h2 className="text-base leading-none text-white">{title}</h2>
+        <h2 className="text-sm sm:text-base leading-none text-white">{title}</h2>
         {error && <span className="text-xs text-red">{error}</span>}
       </div>
 
@@ -95,8 +95,8 @@ export function ActivityLogCard({
         <ul className="space-y-1">
           {items.map((item, index) => (
             <li key={`${item.time}-${index}-${item.message}`} className="flex items-start gap-2">
-              <p className="w-12 shrink-0 font-ibm-plex-mono text-xs leading-[1.1rem] text-white/50">{item.time}</p>
-              <p className="min-w-0 flex-1 text-xs leading-[1.1rem] text-white break-words">{item.message}</p>
+              <p className="w-10 sm:w-12 shrink-0 font-ibm-plex-mono text-[11px] sm:text-xs leading-[1.1rem] text-white/50">{item.time}</p>
+              <p className="min-w-0 flex-1 text-[11px] sm:text-xs leading-[1.1rem] text-white break-words">{item.message}</p>
               <Badge
                 text={item.status}
                 style={badgeStyleMap[item.status]}

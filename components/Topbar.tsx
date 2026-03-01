@@ -50,7 +50,7 @@ export function Topbar({
   const isLocating = !normalizedRegion;
 
   return (
-    <header className="flex items-center gap-2 md:gap-[10px] px-3 py-3 md:px-6 md:py-3 bg-surface-card border-b border-border shrink-0">
+    <header className="flex items-center gap-2 md:gap-[10px] px-3 py-3 md:px-6 md:py-3 bg-surface-card border-b border-border shrink-0 max-w-full overflow-hidden">
       <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
         <button
           type="button"
@@ -102,7 +102,7 @@ export function Topbar({
           </button>
         </div>
 
-        <div className="sm:hidden flex h-10 items-center gap-1 rounded-[8px] border border-border bg-surface px-3 shrink-0">
+        <div className="sm:hidden flex h-8 items-center gap-1 rounded-[8px] border border-border bg-surface px-2 shrink-0">
           <span
             className={`size-1 rounded-full ${systemOnline ? "bg-green shadow-[0_0_8px_rgba(0,201,80,0.8)]" : "bg-red shadow-[0_0_8px_rgba(251,44,54,0.7)]"}`}
             aria-hidden="true"

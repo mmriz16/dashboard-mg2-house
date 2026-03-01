@@ -59,7 +59,7 @@ export function QuickActionsCard({ className = "", title = "Quick Actions", acti
   return (
     <section className={`w-full rounded-[14px] border border-border bg-surface-card p-1 ${className}`}>
       <div className="px-4 py-2.5">
-        <h2 className="text-base leading-none text-white">{title}</h2>
+        <h2 className="text-sm sm:text-base leading-none text-white">{title}</h2>
       </div>
 
       <div className="rounded-[10px] bg-surface p-2">
@@ -69,12 +69,12 @@ export function QuickActionsCard({ className = "", title = "Quick Actions", acti
               <button
                 type="button"
                 onClick={action.onClick}
-                className="flex h-10 w-full items-center gap-2 rounded-[8px] px-2 text-left text-white transition-colors hover:bg-surface-hover"
+                className="flex h-9 sm:h-10 w-full items-center gap-2 rounded-[8px] px-2 text-left text-white transition-colors hover:bg-surface-hover"
               >
                 <span className="text-white/90">
                   <ActionIcon tone={action.tone ?? "default"} />
                 </span>
-                <span className="min-w-0 flex-1 truncate text-sm leading-none">{action.label}</span>
+                <span className="min-w-0 flex-1 truncate text-xs sm:text-sm leading-none">{action.label}</span>
                 {action.badgeText ? (
                   <Badge
                     text={action.badgeText}

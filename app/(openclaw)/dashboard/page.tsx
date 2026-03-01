@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { authClient, clearCachedSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
+import { SidebarWrapper as Sidebar } from "@/components/SidebarWrapper";
 import { Topbar } from "@/components/Topbar";
 import { GatewayCard } from "@/components/ui/(openclaw)/(card)/gateway";
 import UpdateCard from "@/components/ui/(openclaw)/(card)/update";
@@ -94,10 +94,10 @@ export default function DashboardPage() {
   const displayName = sessionData?.user?.name?.trim() || "there";
 
   return (
-    <div className="flex h-screen w-full bg-surface">
+    <div className="flex h-screen w-full bg-surface overflow-hidden">
       <Sidebar onLogout={handleLogout} />
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 min-w-0 flex-col">
         <Topbar
           title="Dashboard"
           subtitle="Control"
@@ -106,26 +106,26 @@ export default function DashboardPage() {
           systemStatusLabel={isGatewayOnline ? "Server Online" : "Server Offline"}
         />
 
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-4 p-4 sm:p-6 max-w-full">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-manrope font-medium text-white">Welcome back, {displayName}!</h1>
-            <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
+            <h1 className="text-xl sm:text-2xl font-manrope font-medium text-white">Welcome back, {displayName}!</h1>
+            <p className="text-white/50 font-ibm-plex-mono text-xs sm:text-sm uppercase tracking-widest">
               Here is what you need to know today
             </p>
           </div>
 
           <div className="flex flex-col gap-2.5 w-full">
             <GatewayCard autoFetch={true} />
-            <div className="flex gap-2.5 w-full">
-              <div className="shrink-0 max-w-[400px]">
+            <div className="flex flex-col lg:flex-row gap-2.5 w-full">
+              <div className="w-full lg:shrink-0 lg:max-w-[400px]">
                 <UpdateCard />
               </div>
-              <div className="flex-1 min-w-0 relative">
+              <div className="flex-1 min-w-0 relative min-h-[300px]">
                 <div className="absolute inset-0">
                   <ActivityLogCard autoFetch={true} />
                 </div>
               </div>
-              <div className="shrink-0 max-w-[400px]">
+              <div className="w-full lg:shrink-0 lg:max-w-[400px]">
                 <AlertsCard
                   items={alertItems}
                   onViewAll={() => {
