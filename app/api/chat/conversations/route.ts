@@ -1,30 +1,35 @@
 import { NextResponse } from "next/server";
 import { convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-import { isAuthenticated } from "@/lib/auth-server";
+import { getServerSession } from "@/lib/server-session";
 
 async function getUserId() {
-  // Use the native Better Auth adapter which reads cookies directly
-  return await isAuthenticated();
+  const session = await getServerSession();
+  return session?.user?.id;
 }
 
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rows = await convex.query(api.chat.getConversations, { userId });
+    const rows = await convex.query(api.chat.getConversations, { userId });
 
-  const conversations = rows.map((row) => {
-    const lastTs = row.updatedAt || row.createdAt;
-    return {
-      key: row.key,
-      title: row.title?.trim() || "New Chat",
-      pinned: !!row.pinned,
-      lastTimestamp: lastTs,
-    };
-  });
+    const conversations = rows.map((row) => {
+      const lastTs = row.updatedAt || row.createdAt;
+      return {
+        key: row.key,
+        title: row.title?.trim() || "New Chat",
+        pinned: !!row.pinned,
+        lastTimestamp: lastTs,
+      };
+    });
 
-  return NextResponse.json({ conversations });
+    return NextResponse.json({ conversations });
+  } catch (error) {
+    console.error("GET /api/chat/conversations ERROR:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
