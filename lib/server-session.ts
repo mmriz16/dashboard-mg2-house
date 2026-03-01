@@ -16,7 +16,12 @@ export async function getServerSession() {
   try {
     const response = await fetch(`${origin}/api/auth/get-session`, {
       method: "GET",
-      headers: { cookie },
+      headers: {
+        cookie,
+        ...(host && { host }),
+        origin,
+        "user-agent": requestHeaders.get("user-agent") || "Next.js Server",
+      },
       cache: "no-store",
     });
 
