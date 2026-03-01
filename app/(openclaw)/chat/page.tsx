@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import type { CSSProperties } from "react";
-import { useRef, useEffect, useMemo, useState } from "react";
+import React, { useRef, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { ChatUsersCard } from "@/components/ui/ChatUsers";
 import { ChatCard } from "@/components/ui/ChatAgent";
@@ -275,6 +275,14 @@ function renderAssistantText(text: string) {
 }
 
 export default function DashboardPage() {
+  return (
+    <React.Suspense fallback={<div className="flex h-screen w-full bg-surface" />}>
+      <ChatPageContent />
+    </React.Suspense>
+  );
+}
+
+function ChatPageContent() {
   const { isPending } = authClient.useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
