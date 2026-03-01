@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { convex } from "@/lib/convex-server";
 import { api } from "@/convex/_generated/api";
-import { getServerSession } from "@/lib/server-session";
+import { isAuthenticated } from "@/lib/auth-server";
 
 async function getUserId() {
-  const session = await getServerSession();
-  return session?.user?.id;
+  // Use the native Better Auth adapter which reads cookies directly
+  return await isAuthenticated();
 }
 
 export async function GET() {
