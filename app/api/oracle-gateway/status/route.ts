@@ -18,11 +18,22 @@ interface GatewayStatus {
 async function sshExec(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const { exec } = require("child_process");
-    
-    const sshKeyPath = ORACLE_SSH_KEY.replace(/\\/g, "/");
-    const sshCmd = `ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no -o ConnectTimeout=15 ${ORACLE_USER}@${ORACLE_SERVER} ${command}`;
-    
-    exec(sshCmd, { timeout: 30000, maxBuffer: 1024 * 1024, shell: "cmd.exe" }, (error: Error | null, stdout: string, stderr: string) => {
+
+    if (ORACLE_SERVER === "127.0.0.1" || ORACLE_SERVER === "localhost") {
+      exec(command, { timeout: 60000, maxBuffer: 1024 * 1024 }, (error: Error | null, stdout: string, stderr: string) => {
+        if (error) {
+          reject(new Error(stderr || error.message));
+          return;
+        }
+        resolve(stdout);
+      });
+      return;
+    }
+
+    const sshKeyPath = ORACLE_SSH_KEY.replace(/\\/g, "\\\\");
+    const sshCmd = `ssh -i "${sshKeyPath}" -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${ORACLE_USER}@${ORACLE_SERVER} '${command}'`;
+
+    exec(sshCmd, { timeout: 60000, maxBuffer: 1024 * 1024 }, (error: Error | null, stdout: string, stderr: string) => {
       if (error) {
         reject(new Error(stderr || error.message));
         return;
@@ -37,14 +48,14 @@ function formatUptime(timestampStr: string): string {
     // Parse UTC timestamp: "Fri 2026-02-27 17:54:46 UTC"
     const date = new Date(timestampStr.replace(/ UTC$/, "Z"));
     if (isNaN(date.getTime())) return "-";
-    
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    
+
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${days}d ${hours}h ${mins}m`;
   } catch {
     return "-";
@@ -55,7 +66,7 @@ export async function GET() {
   try {
     // Get gateway status and uptime in one command
     const output = await sshExec("openclaw gateway status --json");
-    
+
     let data: Record<string, unknown> = {};
     try {
       data = JSON.parse(output.trim());
@@ -96,7 +107,7 @@ export async function GET() {
     });
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : "Unknown error";
-    
+
     return NextResponse.json({
       status: "offline" as const,
       port: "-",
