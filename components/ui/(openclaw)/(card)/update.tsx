@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
@@ -29,15 +30,7 @@ interface UpdateCardProps {
 
 function PowerIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
-      <path d="M8 2.667v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path
-        d="M4.4 4.267a5.333 5.333 0 1 0 7.2 0"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
+    <Image src="/icons/download.svg" alt="Update" width={16} height={16} className="size-4" aria-hidden="true" />
   );
 }
 
@@ -55,7 +48,8 @@ function resolveGithubReleasePreview(url: string): string | null {
     const tag = segments.slice(4).join("/");
     if (!owner || !repo || !tag) return null;
 
-    return `https://opengraph.githubassets.com/openclaw-dashboard/${owner}/${repo}/releases/tag/${tag}`;
+    const sanitizedTag = tag.replace(/[^a-zA-Z0-9.-]/g, "");
+    return `https://opengraph.githubassets.com/openclaw-${sanitizedTag}/${owner}/${repo}/releases/tag/${tag}`;
   } catch {
     return null;
   }
@@ -234,11 +228,9 @@ export function UpdateCard({
           <p className="mt-1 text-[10px] sm:text-xs text-white/50 leading-none font-ibm-plex-mono">{resolvedSubtitle}</p>
         </div>
         {isUpdateAvailable ? (
-          <Button
+          <button
             type="button"
-            variant="primary"
-            leftIcon={<PowerIcon />}
-            className="size-10 shrink-0 p-0 text-green bg-green/10 border-transparent hover:bg-green/20"
+            className="flex items-center justify-center gap-[10px] rounded-[8px] bg-[rgba(0,201,80,0.1)] px-[12px] py-[12px] text-[#00C950] transition-all hover:bg-[rgba(0,201,80,0.2)] active:scale-[0.98] shrink-0"
             onClick={async () => {
               if (onAction) {
                 onAction();
@@ -259,7 +251,9 @@ export function UpdateCard({
               }
             }}
             aria-label="Open latest OpenClaw release"
-          />
+          >
+            <PowerIcon />
+          </button>
         ) : (
           <Badge text="LATEST" style="success" className="shrink-0 h-4 px-[6px] py-0 leading-[16px]" />
         )}

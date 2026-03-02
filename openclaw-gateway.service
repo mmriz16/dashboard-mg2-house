@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenClaw Gateway (v2026.2.26)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/node /usr/lib/node_modules/openclaw/dist/index.js gateway start
+Restart=always
+Environment=NODE_ENV=production
+Environment=OPENCLAW_SERVICE_MARKER=openclaw
+Environment=OPENCLAW_SERVICE_VERSION=2026.2.26
+Environment=TMPDIR=/tmp
+
+[Install]
+WantedBy=default.target

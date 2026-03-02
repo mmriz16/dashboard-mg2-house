@@ -1,0 +1,87 @@
+{
+  "workspaceDir": "/home/ubuntu/.openclaw/workspace",
+  "managedHooksDir": "/home/ubuntu/.openclaw/hooks",
+  "hooks": [
+    {
+      "name": "boot-md",
+      "description": "Run BOOT.md on gateway startup",
+      "emoji": "🚀",
+      "eligible": true,
+      "disabled": false,
+      "source": "openclaw-bundled",
+      "events": [
+        "gateway:startup"
+      ],
+      "homepage": "https://docs.openclaw.ai/automation/hooks#boot-md",
+      "missing": {
+        "bins": [],
+        "anyBins": [],
+        "env": [],
+        "config": [],
+        "os": []
+      },
+      "managedByPlugin": false
+    },
+    {
+      "name": "bootstrap-extra-files",
+      "description": "Inject additional workspace bootstrap files via glob/path patterns",
+      "emoji": "📎",
+      "eligible": true,
+      "disabled": false,
+      "source": "openclaw-bundled",
+      "events": [
+        "agent:bootstrap"
+      ],
+      "homepage": "https://docs.openclaw.ai/automation/hooks#bootstrap-extra-files",
+      "missing": {
+        "bins": [],
+        "anyBins": [],
+        "env": [],
+        "config": [],
+        "os": []
+      },
+      "managedByPlugin": false
+    },
+    {
+      "name": "command-logger",
+      "description": "Log all command events to a centralized audit file",
+      "emoji": "📝",
+      "eligible": true,
+      "disabled": false,
+      "source": "openclaw-bundled",
+      "events": [
+        "command"
+      ],
+      "homepage": "https://docs.openclaw.ai/automation/hooks#command-logger",
+      "missing": {
+        "bins": [],
+        "anyBins": [],
+        "env": [],
+        "config": [],
+        "os": []
+      },
+      "managedByPlugin": false
+    },
+    {
+      "name": "session-memory",
+      "description": "Save session context to memory when /new or /reset command is issued",
+      "emoji": "💾",
+      "eligible": true,
+      "disabled": false,
+      "source": "openclaw-bundled",
+      "events": [
+        "command:new",
+        "command:reset"
+      ],
+      "homepage": "https://docs.openclaw.ai/automation/hooks#session-memory",
+      "missing": {
+        "bins": [],
+        "anyBins": [],
+        "env": [],
+        "config": [],
+        "os": []
+      },
+      "managedByPlugin": false
+    }
+  ]
+}

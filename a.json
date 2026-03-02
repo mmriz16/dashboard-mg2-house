@@ -1,0 +1,12 @@
+[
+  {
+    "id": "main",
+    "workspace": "/home/ubuntu/.openclaw/workspace",
+    "agentDir": "/home/ubuntu/.openclaw/agents/main/agent",
+    "bindings": 0,
+    "isDefault": true,
+    "routes": [
+      "default (no explicit rules)"
+    ]
+  }
+]

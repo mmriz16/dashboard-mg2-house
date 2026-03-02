@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
@@ -31,49 +32,19 @@ const statusBadgeStyle: Record<GatewayStatus, "success" | "warning" | "danger"> 
 
 function RefreshIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M13.333 7.99984A5.333 5.333 0 1 1 11.78 4.22717"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10.667 2.6665h2.666v2.66667"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Image src="/icons/refresh.svg" alt="Refresh" width={16} height={16} className="size-4" aria-hidden="true" />
   );
 }
 
 function RestartIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
-      <path
-        d="M7.9987 2.6665a5.333 5.333 0 1 0 4.5333 2.53334"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8.66699 1.3335h3.33301v3.333"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Image src="/icons/restart.svg" alt="Restart" width={16} height={16} className="size-4" aria-hidden="true" />
   );
 }
 
 function StopIcon() {
   return (
-    <svg viewBox="0 0 16 16" fill="none" className="size-4" aria-hidden="true">
-      <rect x="3.5" y="3.5" width="9" height="9" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
+    <Image src="/icons/stop.svg" alt="Stop" width={16} height={16} className="size-4" aria-hidden="true" />
   );
 }
 
