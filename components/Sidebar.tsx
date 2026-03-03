@@ -53,6 +53,7 @@ function SidebarContent({ onLogout }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
   const activeConversationKey = searchParams.get("c") || "";
   const activeDraftKey = searchParams.get("d") || "";
   const CHAT_HISTORY_CACHE_KEY = "mg2_sidebar_chat_history";
@@ -131,7 +132,7 @@ function SidebarContent({ onLogout }: SidebarProps) {
     window.addEventListener("chat-history-updated", onHistoryUpdated);
     return () =>
       window.removeEventListener("chat-history-updated", onHistoryUpdated);
-  }, [pathname, searchParams]);
+  }, [pathname, searchParamsKey]);
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -332,6 +333,13 @@ function SidebarContent({ onLogout }: SidebarProps) {
                   variant={pathname === "/agent/files" ? "primary" : "secondary"}
                   label="Files"
                   icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
+                />
+              </Link>
+              <Link href="/agent/tasks" className="w-full">
+                <MenuItem
+                  variant={pathname === "/agent/tasks" ? "primary" : "secondary"}
+                  label="Tasks"
+                  icon={<MG2Icon name="tasks" size={16} className="opacity-80" />}
                 />
               </Link>
             </div>

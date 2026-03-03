@@ -335,7 +335,7 @@ function AlertOverlay({ message, onClose }: { message: string, onClose: () => vo
           <button
             type="button"
             className="flex items-center gap-3 h-[40px] px-5 rounded-[8px] bg-[#4C55FF] hover:bg-[#3E47EB] text-white text-[14px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#4C55FF]/50"
-            onClick={() => setAlertMessage(null)}
+            onClick={onClose}
           >
             <span>OK</span>
             <span className="flex items-center justify-center p-0.5 px-1 border border-white/30 rounded-[4px] bg-white/10">
