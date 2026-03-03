@@ -86,6 +86,8 @@ export default function AgentTasksPage() {
   const filteredTasks = useMemo(() => {
     const base = ownerFilter === "all" ? tasks : tasks.filter((task) => task.ownerType === ownerFilter);
     return [...base].sort((a, b) => {
+      const rw = Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
+      if (rw !== 0) return rw;
       const p = weightPriority(b.priority) - weightPriority(a.priority);
       if (p !== 0) return p;
       return String(b.updatedAt).localeCompare(String(a.updatedAt));

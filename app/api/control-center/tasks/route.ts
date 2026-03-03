@@ -262,6 +262,8 @@ async function getHandler(req: NextRequest) {
     const queueCandidates = mergedTasks
       .filter((task) => task.source !== 'subagent' && task.status === 'backlog')
       .sort((a, b) => {
+        const rw = Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
+        if (rw !== 0) return rw;
         const p = priorityWeight(b.priority) - priorityWeight(a.priority);
         if (p !== 0) return p;
         return String(b.updatedAt).localeCompare(String(a.updatedAt));
