@@ -3,12 +3,14 @@
     {
       "id": "manual-mmaqfuv7",
       "title": "Testing Task aja",
-      "status": "todo",
+      "status": "backlog",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-03T14:58:13.123Z",
+      "updatedAt": "2026-03-03T16:17:30.000Z",
       "source": "manual",
-      "detail": "Laporin keadaan sekarang"
+      "detail": "Laporin keadaan sekarang",
+      "priority": "medium",
+      "needsRework": false
     },
     {
       "id": "manual-memory-page-spec-20260303",
