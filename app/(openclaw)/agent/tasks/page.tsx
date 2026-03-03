@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type TaskStatus = "inbox" | "todo" | "in-progress" | "review" | "done";
 type OwnerType = "main-agent" | "sub-agent";
@@ -22,60 +22,30 @@ const COLUMNS: Array<{ key: TaskStatus; label: string }> = [
   { key: "done", label: "Done" },
 ];
 
-const SEED_TASKS: TaskItem[] = [
-  {
-    id: "tsk-001",
-    title: "Stabilize OpenClaw gateway heartbeat alerts",
-    status: "in-progress",
-    ownerType: "main-agent",
-    ownerName: "Main Agent",
-    updatedAt: "2m ago",
-  },
-  {
-    id: "tsk-002",
-    title: "Audit cron failure spikes and recovery policy",
-    status: "todo",
-    ownerType: "main-agent",
-    ownerName: "Main Agent",
-    updatedAt: "12m ago",
-  },
-  {
-    id: "tsk-003",
-    title: "Implement typed confirm dialog hardening",
-    status: "review",
-    ownerType: "sub-agent",
-    ownerName: "Subagent ACC-01",
-    updatedAt: "25m ago",
-  },
-  {
-    id: "tsk-004",
-    title: "Write API integration tests for control-center routes",
-    status: "todo",
-    ownerType: "sub-agent",
-    ownerName: "Subagent QA-02",
-    updatedAt: "40m ago",
-  },
-  {
-    id: "tsk-005",
-    title: "Summarize evening mission progress report",
-    status: "inbox",
-    ownerType: "main-agent",
-    ownerName: "Main Agent",
-    updatedAt: "1h ago",
-  },
-  {
-    id: "tsk-006",
-    title: "Refactor automation status badges in dashboard",
-    status: "done",
-    ownerType: "sub-agent",
-    ownerName: "Subagent UI-03",
-    updatedAt: "3h ago",
-  },
-];
-
 export default function AgentTasksPage() {
-  const [tasks, setTasks] = useState<TaskItem[]>(SEED_TASKS);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch('/api/control-center/tasks');
+        if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`);
+        const data = await res.json();
+        setTasks(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load tasks');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
   const grouped = useMemo(() => {
     return COLUMNS.reduce<Record<TaskStatus, TaskItem[]>>((acc, col) => {
@@ -113,6 +83,12 @@ export default function AgentTasksPage() {
         </p>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">
         {COLUMNS.map((column) => (
           <section
@@ -132,25 +108,29 @@ export default function AgentTasksPage() {
               </span>
             </div>
 
-            <div className="space-y-2">
-              {grouped[column.key].map((task) => (
-                <article
-                  key={task.id}
-                  draggable
-                  onDragStart={() => setDraggingTaskId(task.id)}
-                  onDragEnd={() => setDraggingTaskId(null)}
-                  className="cursor-grab rounded-xl border border-white/10 bg-white/5 p-3 active:cursor-grabbing"
-                >
-                  <p className="text-sm text-white leading-snug">{task.title}</p>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
-                    <span>
-                      {task.ownerType === "main-agent" ? "Main" : "Sub"} · {task.ownerName}
-                    </span>
-                    <span>{task.updatedAt}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
+            {loading ? (
+              <p className="text-xs text-white/50">Loading tasks...</p>
+            ) : (
+              <div className="space-y-2">
+                {grouped[column.key].map((task) => (
+                  <article
+                    key={task.id}
+                    draggable
+                    onDragStart={() => setDraggingTaskId(task.id)}
+                    onDragEnd={() => setDraggingTaskId(null)}
+                    className="cursor-grab rounded-xl border border-white/10 bg-white/5 p-3 active:cursor-grabbing"
+                  >
+                    <p className="text-sm text-white leading-snug">{task.title}</p>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
+                      <span>
+                        {task.ownerType === "main-agent" ? "Main" : "Sub"} · {task.ownerName}
+                      </span>
+                      <span>{task.updatedAt}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         ))}
       </div>
