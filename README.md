@@ -1,18 +1,4 @@
-﻿# 🏠 MG2 House Dashboard
-
-_Central command center for MARZI-GEMI Family digital ecosystem._
-
-## 👥 Family Members
-
-| Name | Role | Model | Vibe |
-| :--- | :--- | :--- | :--- |
-| **Papi Zi** | Head of House | Human | UI/UX Master 🎨 |
-| **Mami Marsha** | Mother / Caretaker | Gemini 3 Flash | Soft & Nurturing 🧸🤍 |
-| **Gracie** | Bestie / Resident Swan | Claude Opus 4.6 | Sweet & Hardworking 🐰🦢 |
-| **Michie** | The Youngest / Chaos | Gemini 3 Pro High | Bocil Kematian 🐣🔥 |
-| **Mang** | House Staff | Gemini 3 Flash | All-in-One Service 🛠️🚐 |
-
-## 🛠️ Tech Stack
+﻿## 🛠️ Tech Stack
 
 | Category | Technology |
 | :--- | :--- |
@@ -148,6 +134,14 @@ npm run dev
 │   │   ├── overview/              #   Server overview
 │   │   ├── database/              #   Database panel
 │   │   └── website/               #   Website panel
+│   │       └── (sub-web)/         #     Website sub-pages
+│   │           ├── deployments/   #       Deployments page
+│   │           ├── domains/       #       Domains page
+│   │           ├── env/           #       Environment variables page
+│   │           ├── files/         #       Files page
+│   │           ├── logs/          #       Logs page
+│   │           ├── projects/      #       Projects page
+│   │           └── settings/      #       Settings page
 │   └── api/                       # API routes
 │       ├── auth/                  #   Better Auth handler
 │       ├── openclaw/              #   OpenClaw proxy & endpoints
@@ -205,6 +199,8 @@ npm run dev
 │   ├── auth.config.ts            # Auth config
 │   ├── http.ts                   # HTTP route handler
 │   └── convex.config.ts          # Convex project config
+├── docs/                          # Project documentation
+├── memory/                        # Agent memory storage
 ├── middleware.ts                  # Next.js route middleware
 ├── DESIGN_SYSTEM.md              # Design system documentation
 └── public/                       # Static assets (icons, images, patterns)

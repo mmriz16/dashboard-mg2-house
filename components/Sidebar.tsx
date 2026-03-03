@@ -3,6 +3,7 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import React, { useEffect, useMemo, useState } from "react";
 import { MenuItem } from "@/components/MenuItem";
+import { SubMenuItem } from "@/components/SubMenuItem";
 import { ProfileCard } from "@/components/ProfileCard";
 import { MG2Icon } from "@/components/ui/MG2Icon";
 import Link from "next/link";
@@ -362,8 +363,62 @@ function SidebarContent({ onLogout }: SidebarProps) {
                   variant={pathname === "/website" ? "primary" : "secondary"}
                   label="Website"
                   icon={<MG2Icon name="notifications" size={16} className="opacity-80" />}
+                  rightIcon={
+                    <MG2Icon
+                      name="dropdown"
+                      size={14}
+                      className={`opacity-70 transition-transform duration-200 ${pathname.startsWith("/website") ? "rotate-180" : ""}`}
+                    />
+                  }
                 />
               </Link>
+
+              {pathname.startsWith("/website") && (
+                <div className="flex flex-col gap-0.5">
+                  <Link href="/website/projects" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/projects" ? "primary" : "secondary"}
+                      label="Projects"
+                    />
+                  </Link>
+                  <Link href="/website/deployments" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/deployments" ? "primary" : "secondary"}
+                      label="Deployments"
+                    />
+                  </Link>
+                  <Link href="/website/domains" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/domains" ? "primary" : "secondary"}
+                      label="Domains & SSL"
+                    />
+                  </Link>
+                  <Link href="/website/files" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/files" ? "primary" : "secondary"}
+                      label="Files / Upload"
+                    />
+                  </Link>
+                  <Link href="/website/env" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/env" ? "primary" : "secondary"}
+                      label="Env Vars"
+                    />
+                  </Link>
+                  <Link href="/website/logs" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/logs" ? "primary" : "secondary"}
+                      label="Logs"
+                    />
+                  </Link>
+                  <Link href="/website/settings" className="w-full">
+                    <SubMenuItem
+                      variant={pathname === "/website/settings" ? "primary" : "secondary"}
+                      label="Settings"
+                    />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

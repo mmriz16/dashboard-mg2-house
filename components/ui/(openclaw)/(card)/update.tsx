@@ -112,6 +112,7 @@ export function UpdateCard({
 }: UpdateCardProps) {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [latestReleaseUrl, setLatestReleaseUrl] = useState<string>(RELEASES_URL);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [xNotes, setXNotes] = useState<ReleaseNote[] | null>(null);
   const [xPreviewImage, setXPreviewImage] = useState<string | null>(null);
   const [xVersion, setXVersion] = useState<string | null>(null);
@@ -242,12 +243,12 @@ export function UpdateCard({
                 const data = await res.json();
 
                 if (data?.success) {
-                  alert("Command executed successfully.");
+                  setAlertMessage("Command executed successfully.");
                 } else {
-                  alert("Command failed: " + (data?.error || "Unknown error"));
+                  setAlertMessage("Command failed: " + (data?.error || "Unknown error"));
                 }
               } catch (e) {
-                alert("Request failed: " + ((e instanceof Error) ? e.message : "Unknown error"));
+                setAlertMessage("Request failed: " + ((e instanceof Error) ? e.message : "Unknown error"));
               }
             }}
             aria-label="Open latest OpenClaw release"
@@ -293,7 +294,60 @@ export function UpdateCard({
           </a>
         </div>
       </div>
+
+      {alertMessage && (
+        <AlertOverlay message={alertMessage} onClose={() => setAlertMessage(null)} />
+      )}
     </section>
+  );
+}
+
+function AlertOverlay({ message, onClose }: { message: string, onClose: () => void }) {
+  const [hostname, setHostname] = useState<string>("dashboard");
+
+  useEffect(() => {
+    setHostname(window.location.host);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
+      <div
+        className="w-full max-w-[460px] rounded-[12px] border border-[#2D2E3A] bg-[#1a1b26] shadow-2xl p-6 sm:p-7 zoom-in-95 animate-in duration-200 flex flex-col gap-6"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <svg viewBox="0 0 24 24" fill="none" className="size-5 text-white/90" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              <path d="M2 12h20" />
+            </svg>
+            <span className="text-white text-[15px] font-semibold tracking-wide">
+              {hostname}
+            </span>
+          </div>
+          <p className="text-white text-[15px] leading-relaxed">
+            {message}
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="flex items-center gap-3 h-[40px] px-5 rounded-[8px] bg-[#4C55FF] hover:bg-[#3E47EB] text-white text-[14px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[#4C55FF]/50"
+            onClick={() => setAlertMessage(null)}
+          >
+            <span>OK</span>
+            <span className="flex items-center justify-center p-0.5 px-1 border border-white/30 rounded-[4px] bg-white/10">
+              <svg viewBox="0 0 24 24" fill="none" className="size-3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 10l-5 5 5 5" />
+                <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
