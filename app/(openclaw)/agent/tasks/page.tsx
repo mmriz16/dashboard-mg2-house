@@ -21,12 +21,11 @@ type StatusDefinition = {
   description: string;
 };
 
-const COLUMNS: Array<{ key: TaskStatus; label: string; kind?: "normal" | "log" }> = [
-  { key: "todo", label: "Todo" },
-  { key: "in-progress", label: "In Progress" },
-  { key: "review", label: "Review" },
-  { key: "done", label: "Done" },
-  { key: "inbox", label: "Inbox", kind: "log" },
+const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; dot: string }> = [
+  { key: "todo", label: "Backlog", dot: "bg-slate-400" },
+  { key: "in-progress", label: "In Progress", dot: "bg-violet-400" },
+  { key: "review", label: "Review", dot: "bg-amber-400" },
+  { key: "done", label: "Done", dot: "bg-emerald-400" },
 ];
 
 export default function AgentTasksPage() {
@@ -37,6 +36,7 @@ export default function AgentTasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+  const [ownerFilter, setOwnerFilter] = useState<"all" | OwnerType>("all");
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -58,21 +58,40 @@ export default function AgentTasksPage() {
     fetchTasks();
   }, []);
 
+  const filteredTasks = useMemo(() => {
+    if (ownerFilter === "all") return tasks;
+    return tasks.filter((task) => task.ownerType === ownerFilter);
+  }, [tasks, ownerFilter]);
+
   const grouped = useMemo(() => {
-    return COLUMNS.reduce<Record<TaskStatus, TaskItem[]>>(
-      (acc, col) => {
-        acc[col.key] = tasks.filter((task) => task.status === col.key);
-        return acc;
-      },
-      {
-        todo: [],
-        "in-progress": [],
-        review: [],
-        done: [],
-        inbox: [],
-      },
-    );
-  }, [tasks]);
+    const result: Record<TaskStatus, TaskItem[]> = {
+      todo: [],
+      "in-progress": [],
+      review: [],
+      done: [],
+      inbox: [],
+    };
+
+    for (const task of filteredTasks) {
+      result[task.status].push(task);
+    }
+
+    return result;
+  }, [filteredTasks]);
+
+  const summary = useMemo(() => {
+    const total = filteredTasks.length;
+    const done = grouped.done.length;
+    const inProgress = grouped["in-progress"].length;
+    const thisWeek = grouped.todo.length + grouped["in-progress"].length + grouped.review.length;
+    const completion = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    return { total, done, inProgress, thisWeek, completion };
+  }, [filteredTasks, grouped]);
+
+  const liveActivity = useMemo(() => {
+    return [...filteredTasks].reverse().slice(0, 8);
+  }, [filteredTasks]);
 
   const moveTask = async (taskId: string, nextStatus: TaskStatus) => {
     const prev = tasks;
@@ -96,9 +115,7 @@ export default function AgentTasksPage() {
         body: JSON.stringify({ taskId, status: nextStatus }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to persist: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Failed to persist: ${res.status}`);
 
       const data = await res.json();
       setTasks((current) =>
@@ -119,22 +136,58 @@ export default function AgentTasksPage() {
     }
   };
 
+  const DefinitionBlock = ({ status }: { status: TaskStatus }) => (
+    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+      <p className="text-xs uppercase tracking-wide text-white/50">{definitions[status]?.label ?? status}</p>
+      <p className="mt-1 text-xs text-white/80">{definitions[status]?.description ?? "-"}</p>
+    </div>
+  );
+
   return (
     <main className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-manrope font-medium text-white">Tasks</h1>
-        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
-          Kanban board untuk pantau tugas main agent + sub-agent
-        </p>
+        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Mission board untuk main agent + sub-agent</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <StatCard value={summary.thisWeek} label="This Week" color="text-emerald-300" />
+        <StatCard value={summary.inProgress} label="In Progress" color="text-violet-300" />
+        <StatCard value={summary.total} label="Total" color="text-white" />
+        <StatCard value={`${summary.completion}%`} label="Completion" color="text-fuchsia-300" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2">
+        <button className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400">+ New Task</button>
+        <button
+          onClick={() => setOwnerFilter("all")}
+          className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "all" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+        >
+          All owners
+        </button>
+        <button
+          onClick={() => setOwnerFilter("main-agent")}
+          className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "main-agent" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+        >
+          Main Agent
+        </button>
+        <button
+          onClick={() => setOwnerFilter("sub-agent")}
+          className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "sub-agent" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
+        >
+          Sub-Agent
+        </button>
+
+        <select className="ml-auto rounded-lg border border-white/15 bg-transparent px-3 py-2 text-xs text-white/70 outline-none">
+          <option value="all" className="bg-[#121824]">All projects</option>
+        </select>
       </div>
 
       {error && <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">
-        {COLUMNS.map((column) => {
-          const isInbox = column.kind === "log";
-
-          return (
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
+        <div className="xl:col-span-9 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {MAIN_COLUMNS.map((column) => (
             <section
               key={column.key}
               onDragOver={(event) => event.preventDefault()}
@@ -143,25 +196,20 @@ export default function AgentTasksPage() {
                 void moveTask(draggingTaskId, column.key);
                 setDraggingTaskId(null);
               }}
-              className={`min-h-[420px] rounded-2xl p-3 ${
-                isInbox
-                  ? "border border-dashed border-sky-400/30 bg-sky-500/5"
-                  : "border border-border bg-surface-card"
-              }`}
+              className="min-h-[460px] rounded-2xl border border-border bg-surface-card p-3"
             >
               <div className="mb-3 flex items-center justify-between">
-                <h2 className={`text-sm font-semibold ${isInbox ? "text-sky-200" : "text-white"}`}>{column.label}</h2>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] ${isInbox ? "bg-sky-500/20 text-sky-200" : "bg-white/10 text-white/70"}`}>
-                  {grouped[column.key].length}
-                </span>
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <span className={`h-2 w-2 rounded-full ${column.dot}`} />
+                  {column.label}
+                </h2>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/70">{grouped[column.key].length}</span>
               </div>
-
-              {isInbox && (
-                <p className="mb-2 text-[11px] text-sky-100/70">Inbox = log mentah sebelum dipilah ke status kerja.</p>
-              )}
 
               {loading ? (
                 <p className="text-xs text-white/50">Loading tasks...</p>
+              ) : grouped[column.key].length === 0 ? (
+                <p className="text-xs text-white/35">No tasks</p>
               ) : (
                 <div className="space-y-2">
                   {grouped[column.key].map((task) => (
@@ -173,11 +221,10 @@ export default function AgentTasksPage() {
                       onDragEnd={() => setDraggingTaskId(null)}
                       className="cursor-grab rounded-xl border border-white/10 bg-white/5 p-3 active:cursor-grabbing hover:bg-white/[0.08]"
                     >
-                      <p className="text-sm text-white leading-snug">{task.title}</p>
+                      <p className="text-sm text-white leading-snug line-clamp-2">{task.title}</p>
+                      {task.detail && <p className="mt-1 text-xs text-white/45 line-clamp-2">{task.detail.replace(/\n+/g, " ")}</p>}
                       <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
-                        <span>
-                          {task.ownerType === "main-agent" ? "Main" : "Sub"} · {task.ownerName}
-                        </span>
+                        <span>{task.ownerName}</span>
                         <span>{savingId === task.id ? "saving..." : task.updatedAt}</span>
                       </div>
                     </article>
@@ -185,8 +232,63 @@ export default function AgentTasksPage() {
                 </div>
               )}
             </section>
-          );
-        })}
+          ))}
+        </div>
+
+        <aside className="xl:col-span-3 flex flex-col gap-3">
+          <section
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => {
+              if (!draggingTaskId) return;
+              void moveTask(draggingTaskId, "inbox");
+              setDraggingTaskId(null);
+            }}
+            className="rounded-2xl border border-dashed border-sky-400/30 bg-sky-500/5 p-3"
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-sky-200">Inbox Log</h3>
+              <span className="rounded-full bg-sky-500/20 px-2 py-0.5 text-[11px] text-sky-200">{grouped.inbox.length}</span>
+            </div>
+            <p className="mb-2 text-[11px] text-sky-100/70">Drop task ke sini kalau item masih mentah / belum siap workflow.</p>
+            <div className="space-y-2 max-h-[240px] overflow-auto pr-1">
+              {grouped.inbox.length === 0 ? (
+                <p className="text-xs text-sky-100/50">No inbox logs</p>
+              ) : (
+                grouped.inbox.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => setSelectedTask(task)}
+                    className="w-full rounded-lg border border-sky-300/20 bg-sky-500/10 p-2 text-left hover:bg-sky-500/15"
+                  >
+                    <p className="text-xs text-sky-100 line-clamp-2">{task.title}</p>
+                    <p className="mt-1 text-[10px] text-sky-100/60">{task.updatedAt}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <h3 className="text-sm font-semibold text-white">Live Activity</h3>
+            <div className="mt-2 space-y-2 max-h-[360px] overflow-auto pr-1">
+              {liveActivity.length === 0 ? (
+                <p className="text-xs text-white/50">No activity</p>
+              ) : (
+                liveActivity.map((item) => (
+                  <button
+                    key={`activity-${item.id}`}
+                    onClick={() => setSelectedTask(item)}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 p-2 text-left hover:bg-white/10"
+                  >
+                    <p className="text-xs text-white font-medium">{item.ownerName}</p>
+                    <p className="mt-1 text-xs text-white/70 line-clamp-2">{item.title}</p>
+                    <p className="mt-1 text-[10px] text-white/45">{item.updatedAt}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+        </aside>
       </div>
 
       {selectedTask && (
@@ -205,24 +307,13 @@ export default function AgentTasksPage() {
 
             <div className="mt-5 space-y-3 text-sm text-white/80">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p>
-                  <span className="text-white/50">Owner:</span> {selectedTask.ownerName}
-                </p>
-                <p>
-                  <span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}
-                </p>
-                <p>
-                  <span className="text-white/50">Status:</span> {selectedTask.status}
-                </p>
-                <p>
-                  <span className="text-white/50">Last Update:</span> {selectedTask.updatedAt}
-                </p>
+                <p><span className="text-white/50">Owner:</span> {selectedTask.ownerName}</p>
+                <p><span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}</p>
+                <p><span className="text-white/50">Status:</span> {selectedTask.status}</p>
+                <p><span className="text-white/50">Last Update:</span> {selectedTask.updatedAt}</p>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs uppercase tracking-wider text-white/50">Status Definition</p>
-                <p className="mt-1 text-white">{definitions[selectedTask.status]?.description ?? "-"}</p>
-              </div>
+              <DefinitionBlock status={selectedTask.status} />
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <p className="text-xs uppercase tracking-wider text-white/50">Detail</p>
@@ -233,5 +324,14 @@ export default function AgentTasksPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+      <p className={`text-2xl font-semibold ${color}`}>{value}</p>
+      <p className="text-xs text-white/50">{label}</p>
+    </div>
   );
 }
