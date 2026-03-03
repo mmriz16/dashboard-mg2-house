@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type TaskStatus = "planning" | "in-progress" | "review" | "done" | "inbox";
+type TaskStatus = "planning" | "backlog" | "in-progress" | "review" | "done" | "inbox";
 type OwnerType = "main-agent" | "sub-agent";
 type Priority = "low" | "medium" | "high";
 
@@ -16,6 +16,7 @@ type TaskItem = {
   source?: "checklist" | "subagent" | "manual";
   detail?: string;
   priority: Priority;
+  needsRework?: boolean;
 };
 
 type TaskComment = {
@@ -33,7 +34,8 @@ type StatusDefinition = {
 };
 
 const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; dot: string }> = [
-  { key: "planning", label: "Backlog", dot: "bg-slate-300" },
+  { key: "planning", label: "Planning", dot: "bg-cyan-300" },
+  { key: "backlog", label: "Backlog", dot: "bg-slate-300" },
   { key: "in-progress", label: "In Progress", dot: "bg-violet-400" },
   { key: "review", label: "Review", dot: "bg-amber-400" },
   { key: "done", label: "Done", dot: "bg-emerald-400" },
@@ -92,6 +94,7 @@ export default function AgentTasksPage() {
   const grouped = useMemo(() => {
     const result: Record<TaskStatus, TaskItem[]> = {
       planning: [],
+      backlog: [],
       "in-progress": [],
       review: [],
       done: [],
@@ -106,7 +109,7 @@ export default function AgentTasksPage() {
     const total = filteredTasks.length;
     const done = grouped.done.length;
     const inProgress = grouped["in-progress"].length;
-    const thisWeek = grouped.planning.length + grouped["in-progress"].length + grouped.review.length;
+    const thisWeek = grouped.planning.length + grouped.backlog.length + grouped["in-progress"].length + grouped.review.length;
     const completion = total > 0 ? Math.round((done / total) * 100) : 0;
     return { total, done, inProgress, thisWeek, completion };
   }, [filteredTasks, grouped]);
@@ -218,9 +221,10 @@ export default function AgentTasksPage() {
       const comment = data?.comment as TaskComment | undefined;
       if (comment) {
         const nextStatus = (data?.status as TaskStatus | undefined) ?? selectedTask.status;
+        const nextNeedsRework = Boolean(data?.needsRework);
         setCommentsMap((prev) => ({ ...prev, [selectedTask.id]: [comment, ...(prev[selectedTask.id] ?? [])] }));
-        setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? { ...t, status: nextStatus, updatedAt: comment.createdAt } : t)));
-        setSelectedTask((prev) => (prev ? { ...prev, status: nextStatus, updatedAt: comment.createdAt } : prev));
+        setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? { ...t, status: nextStatus, needsRework: nextNeedsRework, updatedAt: comment.createdAt } : t)));
+        setSelectedTask((prev) => (prev ? { ...prev, status: nextStatus, needsRework: nextNeedsRework, updatedAt: comment.createdAt } : prev));
         setNewComment("");
       }
     } catch (err) {
@@ -232,7 +236,7 @@ export default function AgentTasksPage() {
     <main className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-manrope font-medium text-white">Tasks</h1>
-        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Backlog → In Progress → Review → Done (Inbox sebagai log)</p>
+        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Planning → Backlog → In Progress → Review → (Done / Backlog)</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -253,7 +257,7 @@ export default function AgentTasksPage() {
       {error && <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        <div className="xl:col-span-9 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="xl:col-span-9 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           {MAIN_COLUMNS.map((column) => (
             <section
               key={column.key}
@@ -276,7 +280,10 @@ export default function AgentTasksPage() {
                     <article key={task.id} draggable onClick={() => setSelectedTask(task)} onDragStart={() => setDraggingTaskId(task.id)} onDragEnd={() => setDraggingTaskId(null)} className="cursor-grab rounded-xl border border-white/10 bg-white/5 p-3 active:cursor-grabbing hover:bg-white/[0.08]">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm text-white leading-snug line-clamp-2">{task.title}</p>
-                        <PriorityBadge priority={task.priority} />
+                        <div className="flex flex-col items-end gap-1">
+                          <PriorityBadge priority={task.priority} />
+                          {task.needsRework && <ReworkBadge />}
+                        </div>
                       </div>
                       {task.detail && <p className="mt-1 text-xs text-white/45 line-clamp-2">{task.detail.replace(/\n+/g, " ")}</p>}
                       <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
@@ -320,6 +327,7 @@ export default function AgentTasksPage() {
               <div className="grid grid-cols-2 gap-2">
                 <select value={newTaskStatus} onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)} className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white outline-none">
                   <option className="bg-[#121824]" value="planning">Planning</option>
+                  <option className="bg-[#121824]" value="backlog">Backlog</option>
                   <option className="bg-[#121824]" value="in-progress">In Progress</option>
                   <option className="bg-[#121824]" value="review">Review</option>
                   <option className="bg-[#121824]" value="done">Done</option>
@@ -355,6 +363,7 @@ export default function AgentTasksPage() {
                 <p><span className="text-white/50">Owner:</span> {selectedTask.ownerName}</p>
                 <p><span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}</p>
                 <p><span className="text-white/50">Status:</span> {selectedTask.status}</p>
+                {selectedTask.needsRework && <p><span className="text-white/50">Flag:</span> <span className="text-rose-300">Needs rework</span></p>}
                 <p><span className="text-white/50">Last Update:</span> {selectedTask.updatedAt}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-white/50">Priority:</span>
@@ -403,6 +412,10 @@ function weightPriority(priority: Priority) {
 function PriorityBadge({ priority }: { priority: Priority }) {
   const cls = priority === "high" ? "bg-red-500/20 text-red-200" : priority === "medium" ? "bg-amber-500/20 text-amber-200" : "bg-slate-500/20 text-slate-200";
   return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>{priority.toUpperCase()}</span>;
+}
+
+function ReworkBadge() {
+  return <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold text-rose-200">NEEDS REWORK</span>;
 }
 
 function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {

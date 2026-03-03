@@ -4,7 +4,7 @@ import path from 'node:path';
 import { listSubagents } from '@/lib/openclaw';
 import { withCapability } from '@/lib/auth/guards';
 
-type TaskStatus = 'planning' | 'in-progress' | 'review' | 'done' | 'inbox';
+type TaskStatus = 'planning' | 'backlog' | 'in-progress' | 'review' | 'done' | 'inbox';
 type Priority = 'low' | 'medium' | 'high';
 
 type TaskItem = {
@@ -17,10 +17,11 @@ type TaskItem = {
   source: 'checklist' | 'subagent' | 'manual';
   detail: string;
   priority: Priority;
+  needsRework?: boolean;
 };
 
 type TaskBoardState = {
-  overrides: Record<string, { status?: TaskStatus; priority?: Priority; updatedAt: string }>;
+  overrides: Record<string, { status?: TaskStatus; priority?: Priority; needsRework?: boolean; updatedAt: string }>;
 };
 
 type ManualTaskStore = {
@@ -53,8 +54,12 @@ const DONE_ALLOWED_ACTOR_IDS = new Set(
 
 const statusDefinitions: Record<TaskStatus, { label: string; description: string }> = {
   planning: {
+    label: 'Planning',
+    description: 'Task direncanakan dulu (scope, acceptance criteria, breakdown).',
+  },
+  backlog: {
     label: 'Backlog',
-    description: 'Task parkir dulu sambil nunggu kapasitas eksekusi, atau perlu perbaikan dari review.',
+    description: 'Task siap eksekusi tapi nunggu giliran dikerjain.',
   },
   'in-progress': {
     label: 'In Progress',
@@ -86,8 +91,8 @@ function makeStableId(prefix: string, value: string) {
 
 function normalizeStatus(status: string | undefined): TaskStatus {
   const s = (status ?? '').toLowerCase();
-  if (s === 'todo') return 'planning';
-  if (s === 'planning' || s === 'in-progress' || s === 'review' || s === 'done' || s === 'inbox') return s;
+  if (s === 'todo') return 'backlog';
+  if (s === 'planning' || s === 'backlog' || s === 'in-progress' || s === 'review' || s === 'done' || s === 'inbox') return s;
   return 'inbox';
 }
 
@@ -173,7 +178,7 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
     let status: TaskStatus = 'inbox';
     if (marker.toLowerCase() === 'x') status = 'done';
     else if (marker === '~') status = 'in-progress';
-    else if (marker === ' ') status = 'planning';
+    else if (marker === ' ') status = 'backlog';
 
     tasks.push({
       id: makeStableId('main', title),
@@ -185,6 +190,7 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
       source: 'checklist',
       detail: `Checklist item dari docs/agent-control-tasks.md`,
       priority: 'medium',
+      needsRework: false,
     });
   }
 
@@ -196,7 +202,7 @@ function mapSubagentStatusToTaskStatus(status?: string): TaskStatus {
   if (normalized.includes('run') || normalized.includes('active') || normalized.includes('work')) return 'in-progress';
   if (normalized.includes('done') || normalized.includes('success') || normalized.includes('complete')) return 'done';
   if (normalized.includes('error') || normalized.includes('fail')) return 'review';
-  if (normalized.includes('queue') || normalized.includes('idle') || normalized.includes('wait')) return 'planning';
+  if (normalized.includes('queue') || normalized.includes('idle') || normalized.includes('wait')) return 'backlog';
   return 'inbox';
 }
 
@@ -235,6 +241,7 @@ async function getHandler(req: NextRequest) {
         source: 'subagent',
         detail: `Live sub-agent session\n\nID: ${String(sub.id ?? '-')}\nModel: ${String(sub.model ?? '-')}\nRaw Status: ${String(sub.status ?? '-')}`,
         priority: 'medium',
+        needsRework: false,
       };
     });
 
@@ -246,13 +253,14 @@ async function getHandler(req: NextRequest) {
         ...task,
         status: override.status ? normalizeStatus(override.status) : normalizeStatus(task.status),
         priority: override.priority ? normalizePriority(override.priority) : normalizePriority(task.priority),
+        needsRework: override.needsRework ?? task.needsRework ?? false,
         updatedAt: override.updatedAt,
       };
     });
 
     const idleSubagents = (Array.isArray(subagents) ? subagents : []).filter((s) => String(s?.status ?? '').toLowerCase().includes('idle'));
     const queueCandidates = mergedTasks
-      .filter((task) => task.source !== 'subagent' && (task.status === 'planning' || task.status === 'inbox'))
+      .filter((task) => task.source !== 'subagent' && task.status === 'backlog')
       .sort((a, b) => {
         const p = priorityWeight(b.priority) - priorityWeight(a.priority);
         if (p !== 0) return p;
@@ -303,6 +311,7 @@ async function postHandler(req: NextRequest) {
       source,
       detail: detail || 'Manual task created from Tasks board.',
       priority,
+      needsRework: false,
     };
 
     const existing = await readManualTasks();
@@ -345,17 +354,23 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
         (state.overrides[taskId]?.status as string | undefined) ??
           (typeof body?.taskStatus === 'string' ? body.taskStatus : 'inbox'),
       );
-      // Kalau human kasih komentar saat review, task otomatis balik ke backlog/planning.
+      // Kalau human kasih komentar saat review, task otomatis balik ke backlog + needs rework.
       if (authorType === 'human' && currentStatus === 'review') {
         state.overrides[taskId] = {
           ...state.overrides[taskId],
-          status: 'planning',
+          status: 'backlog',
+          needsRework: true,
           updatedAt: new Date().toISOString(),
         };
         await writeBoardState(state);
       }
 
-      return NextResponse.json({ ok: true, comment: nextComment, status: state.overrides[taskId]?.status });
+      return NextResponse.json({
+        ok: true,
+        comment: nextComment,
+        status: state.overrides[taskId]?.status,
+        needsRework: state.overrides[taskId]?.needsRework,
+      });
     }
 
     const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
@@ -374,6 +389,7 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
       ...state.overrides[taskId],
       status,
       priority: priority ?? state.overrides[taskId]?.priority,
+      needsRework: status === 'backlog' ? (state.overrides[taskId]?.needsRework ?? false) : false,
       updatedAt: new Date().toISOString(),
     };
 
