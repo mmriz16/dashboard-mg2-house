@@ -1,4 +1,17 @@
-﻿## 🛠️ Tech Stack
+﻿# MG2 House Control Center
+
+_An advanced command center and multi-agent system interface for comprehensive ecosystem management._
+
+## � System Overview
+
+The MG2 House Control Center is a unified dashboard designed to orchestrate and manage a suite of AI agents and external services. Built with a modern Next.js 16 stack and Convex real-time synchronization, it provides seamless monitoring, agent task delegation, and ecosystem analytics.
+
+### Key Capabilities
+- **Real-Time Monitoring:** Live gateway status, system health checks, and unified activity logs.
+- **Intelligent Orchestration:** Concurrent management of Gemini and Claude AI models via the OpenClaw API.
+- **Secure Architecture:** Robust authentication powered by Better Auth + Google OAuth with role-based access control.
+
+## 🛠️ Tech Stack
 
 | Category | Technology |
 | :--- | :--- |
@@ -6,7 +19,7 @@
 | **Language** | TypeScript 5 |
 | **UI** | React 19, Tailwind CSS 4 |
 | **Rich Text** | Tiptap (React + Starter Kit) |
-| **Database** | Convex (real-time) + Supabase (PostgreSQL) |
+| **Database** | Convex (real-time) |
 | **Auth** | Better Auth + Google OAuth (via `@convex-dev/better-auth`) |
 | **AI System** | OpenClaw Multi-Agent System |
 | **AI Models** | Gemini & Claude (via OpenClaw) |
@@ -17,6 +30,7 @@
 - Login & Register via Google OAuth or email/password
 - Session management with Better Auth
 - Route-guarded middleware
+- Role-based capabilities
 
 ### 📊 OpenClaw Dashboard (`/dashboard`)
 - **Gateway Card** — Real-time OpenClaw gateway status (online/offline), health check, region label
@@ -39,7 +53,7 @@
 ### 🖥️ Server Pages
 - **Overview** (`/overview`) — Server system overview
 - **Database** (`/database`) — Database management panel
-- **Website** (`/website`) — Website management panel
+- **Website** (`/website`) — Website management panel (Deployments, Domains, Env, Files, Logs, Projects, Settings)
 
 ### 🎨 UI System
 - Collapsible sidebar with submenu hover tooltips
@@ -88,9 +102,6 @@ Copy `.env.local.example` to `.env.local` and fill in:
 # Better Auth
 BETTER_AUTH_SECRET=your-secret-key
 BETTER_AUTH_URL=http://localhost:3000
-
-# Supabase PostgreSQL
-DATABASE_URL=postgresql://...
 
 # Google OAuth
 GOOGLE_CLIENT_ID=...
@@ -212,7 +223,6 @@ npm run dev
 | :--- | :--- |
 | **OpenClaw Gateway** | Remote AI multi-agent system |
 | **Convex** | Real-time database & backend functions |
-| **Supabase** | PostgreSQL database (via Better Auth) |
 | **Google Cloud** | OAuth provider |
 | **GitHub API** | Repository update feed |
 
