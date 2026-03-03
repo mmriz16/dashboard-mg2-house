@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { listSubagents } from '@/lib/openclaw';
 import { withCapability } from '@/lib/auth/guards';
+import { publishTasksEvent } from '@/lib/tasks-events';
 
 type TaskStatus = 'planning' | 'backlog' | 'in-progress' | 'review' | 'done' | 'inbox';
 type Priority = 'low' | 'medium' | 'high';
@@ -318,6 +319,7 @@ async function postHandler(req: NextRequest) {
 
     const existing = await readManualTasks();
     await writeManualTasks([task, ...existing]);
+    publishTasksEvent({ type: 'task-created', taskId: task.id, at: new Date().toISOString() });
 
     return NextResponse.json({ ok: true, task }, { status: 201 });
   } catch (error) {
@@ -367,6 +369,7 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
         await writeBoardState(state);
       }
 
+      publishTasksEvent({ type: 'task-updated', taskId, at: new Date().toISOString() });
       return NextResponse.json({
         ok: true,
         comment: nextComment,
@@ -396,6 +399,7 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
     };
 
     await writeBoardState(state);
+    publishTasksEvent({ type: 'task-updated', taskId, at: new Date().toISOString() });
 
     return NextResponse.json({ ok: true, taskId, status, priority: state.overrides[taskId].priority, updatedAt: state.overrides[taskId].updatedAt });
   } catch (error) {
@@ -432,6 +436,7 @@ async function deleteHandler(req: NextRequest) {
       await writeComments(comments);
     }
 
+    publishTasksEvent({ type: 'task-deleted', taskId, at: new Date().toISOString() });
     return NextResponse.json({ ok: true, taskId, deleted: true });
   } catch (error) {
     console.error('Error deleting task:', error);

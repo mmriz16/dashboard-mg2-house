@@ -61,6 +61,7 @@ export default function AgentTasksPage() {
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [clock, setClock] = useState(() => Date.now());
 
   const fetchTasks = async () => {
     try {
@@ -81,6 +82,31 @@ export default function AgentTasksPage() {
 
   useEffect(() => {
     void fetchTasks();
+
+    const es = new EventSource('/api/control-center/tasks/stream');
+    const onTaskChange = () => {
+      void fetchTasks();
+    };
+
+    es.addEventListener('task-change', onTaskChange);
+    es.onerror = () => {
+      void fetchTasks();
+    };
+
+    const poll = setInterval(() => {
+      void fetchTasks();
+    }, 10000);
+
+    const ticker = setInterval(() => {
+      setClock(Date.now());
+    }, 30000);
+
+    return () => {
+      es.removeEventListener('task-change', onTaskChange);
+      es.close();
+      clearInterval(poll);
+      clearInterval(ticker);
+    };
   }, []);
 
   const filteredTasks = useMemo(() => {
@@ -327,7 +353,7 @@ export default function AgentTasksPage() {
                     {task.detail && <p className="mt-1 text-xs text-white/45 line-clamp-2">{task.detail.replace(/\n+/g, " ")}</p>}
                     <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
                       <span>{task.ownerName}</span>
-                      <span>{savingId === task.id ? "saving..." : formatTaskTimestamp(task.updatedAt)}</span>
+                      <span>{savingId === task.id ? "saving..." : formatTaskTimestamp(task.updatedAt, clock)}</span>
                     </div>
                   </article>
                 ))}
@@ -395,7 +421,7 @@ export default function AgentTasksPage() {
                 <p><span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}</p>
                 <p><span className="text-white/50">Status:</span> {selectedTask.status}</p>
                 {selectedTask.needsRework && <p><span className="text-white/50">Flag:</span> <span className="text-rose-300">Needs rework</span></p>}
-                <p><span className="text-white/50">Last Update:</span> {formatTaskTimestamp(selectedTask.updatedAt)}</p>
+                <p><span className="text-white/50">Last Update:</span> {formatTaskTimestamp(selectedTask.updatedAt, clock)}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-white/50">Priority:</span>
                   <select value={selectedTask.priority} onChange={(e) => void updatePriority(selectedTask.id, e.target.value as Priority)} className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-xs text-white">
@@ -414,7 +440,7 @@ export default function AgentTasksPage() {
                 <div className="mt-2 space-y-2 max-h-[280px] overflow-auto pr-1">
                   {selectedComments.length === 0 ? <p className="text-xs text-white/50">Belum ada komentar.</p> : selectedComments.map((comment) => (
                     <div key={comment.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
-                      <p className="text-[11px] text-white/60">{comment.author} • {comment.authorType} • {formatTaskTimestamp(comment.createdAt)}</p>
+                      <p className="text-[11px] text-white/60">{comment.author} • {comment.authorType} • {formatTaskTimestamp(comment.createdAt, clock)}</p>
                       <p className="mt-1 text-xs text-white/85">{comment.text}</p>
                     </div>
                   ))}
@@ -436,7 +462,7 @@ export default function AgentTasksPage() {
   );
 }
 
-function formatTaskTimestamp(value: string) {
+function formatTaskTimestamp(value: string, nowMs: number) {
   if (!value) return "-";
   const raw = value.trim();
   if (/just now|from checklist|live/i.test(raw)) return raw;
@@ -444,7 +470,7 @@ function formatTaskTimestamp(value: string) {
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return raw;
 
-  const now = new Date();
+  const now = new Date(nowMs);
   const diffMs = now.getTime() - date.getTime();
   const minute = 60_000;
   const hour = 60 * minute;
