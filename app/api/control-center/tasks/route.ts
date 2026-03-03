@@ -402,6 +402,42 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
   }
 }
 
+async function deleteHandler(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
+
+    if (!taskId) return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
+
+    const manualTasks = await readManualTasks();
+    const nextManualTasks = manualTasks.filter((task) => task.id !== taskId);
+
+    if (nextManualTasks.length === manualTasks.length) {
+      return NextResponse.json({ error: 'Task tidak ditemukan atau bukan manual task.' }, { status: 404 });
+    }
+
+    await writeManualTasks(nextManualTasks);
+
+    const state = await readBoardState();
+    if (state.overrides[taskId]) {
+      delete state.overrides[taskId];
+      await writeBoardState(state);
+    }
+
+    const comments = await readComments();
+    if (comments.comments[taskId]) {
+      delete comments.comments[taskId];
+      await writeComments(comments);
+    }
+
+    return NextResponse.json({ ok: true, taskId, deleted: true });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
+  }
+}
+
 export const GET = withCapability('agent-control:subagents:read')(getHandler);
 export const POST = withCapability('agent-control:subagents:write')(postHandler);
 export const PATCH = withCapability('agent-control:subagents:write')(patchHandler);
+export const DELETE = withCapability('agent-control:subagents:write')(deleteHandler);

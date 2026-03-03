@@ -59,6 +59,7 @@ export default function AgentTasksPage() {
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("planning");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
   const [creatingTask, setCreatingTask] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(false);
   const [newComment, setNewComment] = useState("");
 
   const fetchTasks = async () => {
@@ -232,6 +233,43 @@ export default function AgentTasksPage() {
     }
   };
 
+  const deleteTask = async () => {
+    if (!selectedTask) return;
+    if (selectedTask.source !== "manual") {
+      setError("Saat ini delete hanya untuk manual task.");
+      return;
+    }
+
+    const confirmed = window.confirm("Hapus task ini dari Kanban? Task akan hilang dari antrian cron juga.");
+    if (!confirmed) return;
+
+    try {
+      setDeletingTask(true);
+      const res = await fetch("/api/control-center/tasks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id }),
+      });
+
+      if (!res.ok) {
+        const fail = await res.json().catch(() => ({}));
+        throw new Error(fail?.error ?? `Failed to delete task: ${res.status}`);
+      }
+
+      setTasks((prev) => prev.filter((t) => t.id !== selectedTask.id));
+      setCommentsMap((prev) => {
+        const next = { ...prev };
+        delete next[selectedTask.id];
+        return next;
+      });
+      setSelectedTask(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete task");
+    } finally {
+      setDeletingTask(false);
+    }
+  };
+
   return (
     <main className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -287,7 +325,7 @@ export default function AgentTasksPage() {
                     {task.detail && <p className="mt-1 text-xs text-white/45 line-clamp-2">{task.detail.replace(/\n+/g, " ")}</p>}
                     <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
                       <span>{task.ownerName}</span>
-                      <span>{savingId === task.id ? "saving..." : task.updatedAt}</span>
+                      <span>{savingId === task.id ? "saving..." : formatTaskTimestamp(task.updatedAt)}</span>
                     </div>
                   </article>
                 ))}
@@ -335,7 +373,18 @@ export default function AgentTasksPage() {
                 <p className="text-xs uppercase tracking-wider text-white/50">Task Detail</p>
                 <h3 className="mt-1 text-xl font-semibold text-white">{selectedTask.title}</h3>
               </div>
-              <button className="rounded-md border border-white/20 px-3 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setSelectedTask(null)}>Close</button>
+              <div className="flex items-center gap-2">
+                {selectedTask.source === "manual" && (
+                  <button
+                    className="rounded-md border border-red-300/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-60"
+                    onClick={() => void deleteTask()}
+                    disabled={deletingTask}
+                  >
+                    {deletingTask ? "Deleting..." : "Delete"}
+                  </button>
+                )}
+                <button className="rounded-md border border-white/20 px-3 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setSelectedTask(null)}>Close</button>
+              </div>
             </div>
 
             <div className="mt-5 space-y-3 text-sm text-white/80">
@@ -344,7 +393,7 @@ export default function AgentTasksPage() {
                 <p><span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}</p>
                 <p><span className="text-white/50">Status:</span> {selectedTask.status}</p>
                 {selectedTask.needsRework && <p><span className="text-white/50">Flag:</span> <span className="text-rose-300">Needs rework</span></p>}
-                <p><span className="text-white/50">Last Update:</span> {selectedTask.updatedAt}</p>
+                <p><span className="text-white/50">Last Update:</span> {formatTaskTimestamp(selectedTask.updatedAt)}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-white/50">Priority:</span>
                   <select value={selectedTask.priority} onChange={(e) => void updatePriority(selectedTask.id, e.target.value as Priority)} className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-xs text-white">
@@ -363,7 +412,7 @@ export default function AgentTasksPage() {
                 <div className="mt-2 space-y-2 max-h-[280px] overflow-auto pr-1">
                   {selectedComments.length === 0 ? <p className="text-xs text-white/50">Belum ada komentar.</p> : selectedComments.map((comment) => (
                     <div key={comment.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
-                      <p className="text-[11px] text-white/60">{comment.author} • {comment.authorType} • {comment.createdAt}</p>
+                      <p className="text-[11px] text-white/60">{comment.author} • {comment.authorType} • {formatTaskTimestamp(comment.createdAt)}</p>
                       <p className="mt-1 text-xs text-white/85">{comment.text}</p>
                     </div>
                   ))}
@@ -383,6 +432,31 @@ export default function AgentTasksPage() {
       )}
     </main>
   );
+}
+
+function formatTaskTimestamp(value: string) {
+  if (!value) return "-";
+  const raw = value.trim();
+  if (/just now|from checklist|live/i.test(raw)) return raw;
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < minute) return "just now";
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} min ago`;
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} h ago`;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "yesterday";
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 }
 
 function weightPriority(priority: Priority) {
