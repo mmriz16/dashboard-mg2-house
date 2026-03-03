@@ -53,8 +53,8 @@ const DONE_ALLOWED_ACTOR_IDS = new Set(
 
 const statusDefinitions: Record<TaskStatus, { label: string; description: string }> = {
   planning: {
-    label: 'Planning',
-    description: 'Task siap direncanakan / diprepare sebelum eksekusi aktif.',
+    label: 'Backlog',
+    description: 'Task parkir dulu sambil nunggu kapasitas eksekusi, atau perlu perbaikan dari review.',
   },
   'in-progress': {
     label: 'In Progress',
@@ -340,7 +340,22 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
       store.comments[taskId] = [nextComment, ...(store.comments[taskId] ?? [])];
       await writeComments(store);
 
-      return NextResponse.json({ ok: true, comment: nextComment });
+      const state = await readBoardState();
+      const currentStatus = normalizeStatus(
+        (state.overrides[taskId]?.status as string | undefined) ??
+          (typeof body?.taskStatus === 'string' ? body.taskStatus : 'inbox'),
+      );
+      // Kalau human kasih komentar saat review, task otomatis balik ke backlog/planning.
+      if (authorType === 'human' && currentStatus === 'review') {
+        state.overrides[taskId] = {
+          ...state.overrides[taskId],
+          status: 'planning',
+          updatedAt: new Date().toISOString(),
+        };
+        await writeBoardState(state);
+      }
+
+      return NextResponse.json({ ok: true, comment: nextComment, status: state.overrides[taskId]?.status });
     }
 
     const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
@@ -349,7 +364,7 @@ async function patchHandler(req: NextRequest, session: { user?: { id?: string } 
 
     if (!taskId) return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
 
-    const actorId = String(body?.actorId ?? session?.user?.id ?? '');
+    const actorId = String(session?.user?.id ?? '');
     if (status === 'done' && !DONE_ALLOWED_ACTOR_IDS.has(actorId)) {
       return NextResponse.json({ error: 'Hanya owner yang boleh memindahkan task ke Done.' }, { status: 403 });
     }

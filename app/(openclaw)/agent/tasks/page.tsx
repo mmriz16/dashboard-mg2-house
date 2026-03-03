@@ -33,7 +33,7 @@ type StatusDefinition = {
 };
 
 const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; dot: string }> = [
-  { key: "planning", label: "Planning", dot: "bg-slate-300" },
+  { key: "planning", label: "Backlog", dot: "bg-slate-300" },
   { key: "in-progress", label: "In Progress", dot: "bg-violet-400" },
   { key: "review", label: "Review", dot: "bg-amber-400" },
   { key: "done", label: "Done", dot: "bg-emerald-400" },
@@ -122,7 +122,7 @@ export default function AgentTasksPage() {
       const res = await fetch("/api/control-center/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, status: nextStatus, actorId: "618580430" }),
+        body: JSON.stringify({ taskId, status: nextStatus }),
       });
 
       if (!res.ok) {
@@ -150,7 +150,7 @@ export default function AgentTasksPage() {
       const res = await fetch("/api/control-center/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, status: tasks.find((t) => t.id === taskId)?.status ?? "planning", priority, actorId: "618580430" }),
+        body: JSON.stringify({ taskId, status: tasks.find((t) => t.id === taskId)?.status ?? "planning", priority }),
       });
       if (!res.ok) throw new Error(`Failed to update priority: ${res.status}`);
     } catch (err) {
@@ -207,16 +207,20 @@ export default function AgentTasksPage() {
         body: JSON.stringify({
           action: "add-comment",
           taskId: selectedTask.id,
+          taskStatus: selectedTask.status,
           text: newComment.trim(),
-          author: "Main Agent",
-          authorType: "main-agent",
+          author: "You",
+          authorType: "human",
         }),
       });
       if (!res.ok) throw new Error(`Failed to add comment: ${res.status}`);
       const data = await res.json();
       const comment = data?.comment as TaskComment | undefined;
       if (comment) {
+        const nextStatus = (data?.status as TaskStatus | undefined) ?? selectedTask.status;
         setCommentsMap((prev) => ({ ...prev, [selectedTask.id]: [comment, ...(prev[selectedTask.id] ?? [])] }));
+        setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? { ...t, status: nextStatus, updatedAt: comment.createdAt } : t)));
+        setSelectedTask((prev) => (prev ? { ...prev, status: nextStatus, updatedAt: comment.createdAt } : prev));
         setNewComment("");
       }
     } catch (err) {
@@ -228,7 +232,7 @@ export default function AgentTasksPage() {
     <main className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-manrope font-medium text-white">Tasks</h1>
-        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Planning → In Progress → Review → Done (Inbox sebagai log)</p>
+        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Backlog → In Progress → Review → Done (Inbox sebagai log)</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
