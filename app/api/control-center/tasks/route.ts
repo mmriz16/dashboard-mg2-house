@@ -13,7 +13,7 @@ type TaskItem = {
   ownerType: 'main-agent' | 'sub-agent';
   ownerName: string;
   updatedAt: string;
-  source: 'checklist' | 'subagent';
+  source: 'checklist' | 'subagent' | 'manual';
   detail: string;
 };
 
@@ -21,7 +21,12 @@ type TaskBoardState = {
   overrides: Record<string, { status: TaskStatus; updatedAt: string }>;
 };
 
+type ManualTaskStore = {
+  tasks: TaskItem[];
+};
+
 const STATE_FILE = path.join(process.cwd(), 'memory', 'tasks-board-state.json');
+const MANUAL_TASKS_FILE = path.join(process.cwd(), 'memory', 'tasks-custom.json');
 
 const statusDefinitions: Record<TaskStatus, { label: string; description: string }> = {
   todo: {
@@ -69,6 +74,21 @@ async function readBoardState(): Promise<TaskBoardState> {
 async function writeBoardState(state: TaskBoardState) {
   await fs.mkdir(path.dirname(STATE_FILE), { recursive: true });
   await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+}
+
+async function readManualTasks(): Promise<TaskItem[]> {
+  try {
+    const raw = await fs.readFile(MANUAL_TASKS_FILE, 'utf8');
+    const parsed = JSON.parse(raw) as ManualTaskStore;
+    return Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeManualTasks(tasks: TaskItem[]) {
+  await fs.mkdir(path.dirname(MANUAL_TASKS_FILE), { recursive: true });
+  await fs.writeFile(MANUAL_TASKS_FILE, JSON.stringify({ tasks }, null, 2), 'utf8');
 }
 
 function parseChecklistToTasks(markdown: string): TaskItem[] {
@@ -134,10 +154,11 @@ function mapSubagentStatusToTaskStatus(status?: string): TaskStatus {
 
 async function getHandler(req: NextRequest) {
   try {
-    const [subagents, checklistContent, state] = await Promise.all([
+    const [subagents, checklistContent, state, manualTasks] = await Promise.all([
       listSubagents(),
       fs.readFile(path.join(process.cwd(), 'docs', 'agent-control-tasks.md'), 'utf8').catch(() => ''),
       readBoardState(),
+      readManualTasks(),
     ]);
 
     const checklistTasks = checklistContent ? parseChecklistToTasks(checklistContent) : [];
@@ -162,7 +183,7 @@ async function getHandler(req: NextRequest) {
       };
     });
 
-    const mergedTasks = [...subagentTasks, ...checklistTasks].map((task) => {
+    const mergedTasks = [...manualTasks, ...subagentTasks, ...checklistTasks].map((task) => {
       const override = state.overrides[task.id];
       if (!override) return task;
 
@@ -181,6 +202,41 @@ async function getHandler(req: NextRequest) {
   } catch (error) {
     console.error('Error building tasks board data:', error);
     return NextResponse.json({ tasks: [], statusDefinitions, updatedAt: new Date().toISOString() });
+  }
+}
+
+async function postHandler(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const title = typeof body?.title === 'string' ? body.title.trim() : '';
+    const detail = typeof body?.detail === 'string' ? body.detail.trim() : '';
+    const ownerName = typeof body?.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : 'Main Agent';
+    const status = (body?.status as TaskStatus) ?? 'todo';
+
+    const validStatus: TaskStatus[] = ['todo', 'in-progress', 'review', 'done', 'inbox'];
+
+    if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 });
+    if (!validStatus.includes(status)) return NextResponse.json({ error: 'invalid status' }, { status: 400 });
+
+    const now = new Date().toISOString();
+    const task: TaskItem = {
+      id: `manual-${Date.now().toString(36)}`,
+      title,
+      status,
+      ownerType: 'main-agent',
+      ownerName,
+      updatedAt: now,
+      source: 'manual',
+      detail: detail || 'Manual task created from Tasks board.',
+    };
+
+    const existing = await readManualTasks();
+    await writeManualTasks([task, ...existing]);
+
+    return NextResponse.json({ ok: true, task }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating task:', error);
+    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }
 
@@ -211,4 +267,5 @@ async function patchHandler(req: NextRequest) {
 }
 
 export const GET = withCapability('agent-control:subagents:read')(getHandler);
+export const POST = withCapability('agent-control:subagents:write')(postHandler);
 export const PATCH = withCapability('agent-control:subagents:write')(patchHandler);

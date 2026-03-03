@@ -12,7 +12,7 @@ type TaskItem = {
   ownerType: OwnerType;
   ownerName: string;
   updatedAt: string;
-  source?: "checklist" | "subagent";
+  source?: "checklist" | "subagent" | "manual";
   detail?: string;
 };
 
@@ -37,6 +37,11 @@ export default function AgentTasksPage() {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [ownerFilter, setOwnerFilter] = useState<"all" | OwnerType>("all");
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDetail, setNewTaskDetail] = useState("");
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("todo");
+  const [creatingTask, setCreatingTask] = useState(false);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -136,6 +141,46 @@ export default function AgentTasksPage() {
     }
   };
 
+  const createTask = async () => {
+    if (!newTaskTitle.trim()) {
+      setError("Title wajib diisi.");
+      return;
+    }
+
+    try {
+      setCreatingTask(true);
+      setError(null);
+
+      const res = await fetch('/api/control-center/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTaskTitle.trim(),
+          detail: newTaskDetail.trim(),
+          status: newTaskStatus,
+          ownerName: 'Main Agent',
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Failed to create task: ${res.status}`);
+
+      const data = await res.json();
+      const createdTask = data?.task as TaskItem | undefined;
+      if (createdTask) {
+        setTasks((prev) => [createdTask, ...prev]);
+      }
+
+      setNewTaskOpen(false);
+      setNewTaskTitle('');
+      setNewTaskDetail('');
+      setNewTaskStatus('todo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create task');
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
   const DefinitionBlock = ({ status }: { status: TaskStatus }) => (
     <div className="rounded-lg border border-white/10 bg-white/5 p-3">
       <p className="text-xs uppercase tracking-wide text-white/50">{definitions[status]?.label ?? status}</p>
@@ -158,7 +203,7 @@ export default function AgentTasksPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2">
-        <button className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400">+ New Task</button>
+        <button onClick={() => setNewTaskOpen(true)} className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400">+ New Task</button>
         <button
           onClick={() => setOwnerFilter("all")}
           className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "all" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}
@@ -290,6 +335,61 @@ export default function AgentTasksPage() {
           </section>
         </aside>
       </div>
+
+      {newTaskOpen && (
+        <div className="fixed inset-0 z-50">
+          <button className="absolute inset-0 bg-black/55" aria-label="close" onClick={() => setNewTaskOpen(false)} />
+          <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0b0f17] p-4 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white">Create New Task</h3>
+            <p className="mt-1 text-xs text-white/60">Tambahkan task manual ke board.</p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-white/70">Title</label>
+                <input
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="Contoh: Integrasi task create API"
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-white/70">Detail</label>
+                <textarea
+                  value={newTaskDetail}
+                  onChange={(e) => setNewTaskDetail(e.target.value)}
+                  rows={4}
+                  placeholder="Context / acceptance criteria / notes"
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-white/70">Initial Status</label>
+                <select
+                  value={newTaskStatus}
+                  onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)}
+                  className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white outline-none"
+                >
+                  <option className="bg-[#121824]" value="todo">Todo</option>
+                  <option className="bg-[#121824]" value="in-progress">In Progress</option>
+                  <option className="bg-[#121824]" value="review">Review</option>
+                  <option className="bg-[#121824]" value="done">Done</option>
+                  <option className="bg-[#121824]" value="inbox">Inbox</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setNewTaskOpen(false)} className="rounded-lg border border-white/15 px-3 py-2 text-xs text-white/80 hover:bg-white/5">Cancel</button>
+              <button onClick={() => void createTask()} disabled={creatingTask} className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400 disabled:opacity-60">
+                {creatingTask ? 'Creating...' : 'Create Task'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedTask && (
         <div className="fixed inset-0 z-50">
