@@ -4,7 +4,8 @@ import path from 'node:path';
 import { listSubagents } from '@/lib/openclaw';
 import { withCapability } from '@/lib/auth/guards';
 
-type TaskStatus = 'todo' | 'in-progress' | 'review' | 'done' | 'inbox';
+type TaskStatus = 'planning' | 'in-progress' | 'review' | 'done' | 'inbox';
+type Priority = 'low' | 'medium' | 'high';
 
 type TaskItem = {
   id: string;
@@ -15,23 +16,45 @@ type TaskItem = {
   updatedAt: string;
   source: 'checklist' | 'subagent' | 'manual';
   detail: string;
+  priority: Priority;
 };
 
 type TaskBoardState = {
-  overrides: Record<string, { status: TaskStatus; updatedAt: string }>;
+  overrides: Record<string, { status?: TaskStatus; priority?: Priority; updatedAt: string }>;
 };
 
 type ManualTaskStore = {
   tasks: TaskItem[];
 };
 
+type TaskComment = {
+  id: string;
+  taskId: string;
+  author: string;
+  authorType: 'main-agent' | 'sub-agent' | 'human';
+  text: string;
+  createdAt: string;
+};
+
+type TaskCommentStore = {
+  comments: Record<string, TaskComment[]>;
+};
+
 const STATE_FILE = path.join(process.cwd(), 'memory', 'tasks-board-state.json');
 const MANUAL_TASKS_FILE = path.join(process.cwd(), 'memory', 'tasks-custom.json');
+const COMMENTS_FILE = path.join(process.cwd(), 'memory', 'tasks-comments.json');
+
+const DONE_ALLOWED_ACTOR_IDS = new Set(
+  (process.env.TASKS_DONE_ALLOWED_IDS ?? '618580430,local-dev')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean),
+);
 
 const statusDefinitions: Record<TaskStatus, { label: string; description: string }> = {
-  todo: {
-    label: 'Todo',
-    description: 'Task sudah jelas dan siap dikerjakan, tapi belum ada eksekusi aktif.',
+  planning: {
+    label: 'Planning',
+    description: 'Task siap direncanakan / diprepare sebelum eksekusi aktif.',
   },
   'in-progress': {
     label: 'In Progress',
@@ -47,7 +70,7 @@ const statusDefinitions: Record<TaskStatus, { label: string; description: string
   },
   inbox: {
     label: 'Inbox',
-    description: 'Log masuk mentah: catatan baru, item belum dipilah ke lifecycle kerja.',
+    description: 'Log masuk mentah: catatan baru, item belum dipilah ke workflow.',
   },
 };
 
@@ -59,6 +82,18 @@ function makeStableId(prefix: string, value: string) {
     .slice(0, 72);
 
   return `${prefix}-${slug || 'item'}`;
+}
+
+function normalizeStatus(status: string | undefined): TaskStatus {
+  const s = (status ?? '').toLowerCase();
+  if (s === 'todo') return 'planning';
+  if (s === 'planning' || s === 'in-progress' || s === 'review' || s === 'done' || s === 'inbox') return s;
+  return 'inbox';
+}
+
+function normalizePriority(priority: string | undefined): Priority {
+  if (priority === 'high' || priority === 'medium' || priority === 'low') return priority;
+  return 'medium';
 }
 
 async function readBoardState(): Promise<TaskBoardState> {
@@ -80,7 +115,7 @@ async function readManualTasks(): Promise<TaskItem[]> {
   try {
     const raw = await fs.readFile(MANUAL_TASKS_FILE, 'utf8');
     const parsed = JSON.parse(raw) as ManualTaskStore;
-    return Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+    return Array.isArray(parsed?.tasks) ? parsed.tasks.map((task) => ({ ...task, status: normalizeStatus(task.status), priority: normalizePriority(task.priority) })) : [];
   } catch {
     return [];
   }
@@ -89,6 +124,21 @@ async function readManualTasks(): Promise<TaskItem[]> {
 async function writeManualTasks(tasks: TaskItem[]) {
   await fs.mkdir(path.dirname(MANUAL_TASKS_FILE), { recursive: true });
   await fs.writeFile(MANUAL_TASKS_FILE, JSON.stringify({ tasks }, null, 2), 'utf8');
+}
+
+async function readComments(): Promise<TaskCommentStore> {
+  try {
+    const raw = await fs.readFile(COMMENTS_FILE, 'utf8');
+    const parsed = JSON.parse(raw) as TaskCommentStore;
+    return { comments: parsed?.comments ?? {} };
+  } catch {
+    return { comments: {} };
+  }
+}
+
+async function writeComments(store: TaskCommentStore) {
+  await fs.mkdir(path.dirname(COMMENTS_FILE), { recursive: true });
+  await fs.writeFile(COMMENTS_FILE, JSON.stringify(store, null, 2), 'utf8');
 }
 
 function parseChecklistToTasks(markdown: string): TaskItem[] {
@@ -118,15 +168,12 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
     const marker = match[1].trim();
     const title = match[2].trim();
 
-    // Skip generic legend-style pseudo tasks if they still appear.
-    if (/^(todo|in progress|in-progress|done|review)$/i.test(title)) {
-      continue;
-    }
+    if (/^(todo|planning|in progress|in-progress|done|review)$/i.test(title)) continue;
 
     let status: TaskStatus = 'inbox';
     if (marker.toLowerCase() === 'x') status = 'done';
     else if (marker === '~') status = 'in-progress';
-    else if (marker === ' ') status = 'todo';
+    else if (marker === ' ') status = 'planning';
 
     tasks.push({
       id: makeStableId('main', title),
@@ -136,7 +183,8 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
       ownerName: 'Main Agent',
       updatedAt: 'from checklist',
       source: 'checklist',
-      detail: `Checklist item dari docs/agent-control-tasks.md\n\nStatus awal terdeteksi dari marker markdown: [ ] / [~] / [x].`,
+      detail: `Checklist item dari docs/agent-control-tasks.md`,
+      priority: 'medium',
     });
   }
 
@@ -148,17 +196,23 @@ function mapSubagentStatusToTaskStatus(status?: string): TaskStatus {
   if (normalized.includes('run') || normalized.includes('active') || normalized.includes('work')) return 'in-progress';
   if (normalized.includes('done') || normalized.includes('success') || normalized.includes('complete')) return 'done';
   if (normalized.includes('error') || normalized.includes('fail')) return 'review';
-  if (normalized.includes('queue') || normalized.includes('idle') || normalized.includes('wait')) return 'todo';
+  if (normalized.includes('queue') || normalized.includes('idle') || normalized.includes('wait')) return 'planning';
   return 'inbox';
 }
 
+function priorityWeight(priority: Priority) {
+  return priority === 'high' ? 3 : priority === 'medium' ? 2 : 1;
+}
+
 async function getHandler(req: NextRequest) {
+  void req;
   try {
-    const [subagents, checklistContent, state, manualTasks] = await Promise.all([
+    const [subagents, checklistContent, state, manualTasks, comments] = await Promise.all([
       listSubagents(),
       fs.readFile(path.join(process.cwd(), 'docs', 'agent-control-tasks.md'), 'utf8').catch(() => ''),
       readBoardState(),
       readManualTasks(),
+      readComments(),
     ]);
 
     const checklistTasks = checklistContent ? parseChecklistToTasks(checklistContent) : [];
@@ -180,6 +234,7 @@ async function getHandler(req: NextRequest) {
         updatedAt: typeof sub.updatedAt === 'string' ? sub.updatedAt : 'live',
         source: 'subagent',
         detail: `Live sub-agent session\n\nID: ${String(sub.id ?? '-')}\nModel: ${String(sub.model ?? '-')}\nRaw Status: ${String(sub.status ?? '-')}`,
+        priority: 'medium',
       };
     });
 
@@ -189,19 +244,39 @@ async function getHandler(req: NextRequest) {
 
       return {
         ...task,
-        status: override.status,
+        status: override.status ? normalizeStatus(override.status) : normalizeStatus(task.status),
+        priority: override.priority ? normalizePriority(override.priority) : normalizePriority(task.priority),
         updatedAt: override.updatedAt,
       };
     });
 
+    const idleSubagents = (Array.isArray(subagents) ? subagents : []).filter((s) => String(s?.status ?? '').toLowerCase().includes('idle'));
+    const queueCandidates = mergedTasks
+      .filter((task) => task.source !== 'subagent' && (task.status === 'planning' || task.status === 'inbox'))
+      .sort((a, b) => {
+        const p = priorityWeight(b.priority) - priorityWeight(a.priority);
+        if (p !== 0) return p;
+        return String(b.updatedAt).localeCompare(String(a.updatedAt));
+      });
+
+    const suggestedAssignments = idleSubagents.slice(0, queueCandidates.length).map((sub, idx) => ({
+      subagentId: String(sub.id ?? ''),
+      subagentName: String(sub.label ?? sub.name ?? sub.id ?? 'subagent'),
+      taskId: queueCandidates[idx]?.id,
+      taskTitle: queueCandidates[idx]?.title,
+      priority: queueCandidates[idx]?.priority,
+    }));
+
     return NextResponse.json({
       tasks: mergedTasks,
+      comments: comments.comments,
       statusDefinitions,
+      suggestedAssignments,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error building tasks board data:', error);
-    return NextResponse.json({ tasks: [], statusDefinitions, updatedAt: new Date().toISOString() });
+    return NextResponse.json({ tasks: [], comments: {}, statusDefinitions, suggestedAssignments: [], updatedAt: new Date().toISOString() });
   }
 }
 
@@ -211,23 +286,23 @@ async function postHandler(req: NextRequest) {
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
     const detail = typeof body?.detail === 'string' ? body.detail.trim() : '';
     const ownerName = typeof body?.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : 'Main Agent';
-    const status = (body?.status as TaskStatus) ?? 'todo';
-
-    const validStatus: TaskStatus[] = ['todo', 'in-progress', 'review', 'done', 'inbox'];
+    const status = normalizeStatus(body?.status as string);
+    const priority = normalizePriority(body?.priority as string);
+    const source = body?.source === 'subagent' || body?.source === 'checklist' ? body.source : 'manual';
 
     if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 });
-    if (!validStatus.includes(status)) return NextResponse.json({ error: 'invalid status' }, { status: 400 });
 
     const now = new Date().toISOString();
     const task: TaskItem = {
       id: `manual-${Date.now().toString(36)}`,
       title,
       status,
-      ownerType: 'main-agent',
+      ownerType: source === 'subagent' ? 'sub-agent' : 'main-agent',
       ownerName,
       updatedAt: now,
-      source: 'manual',
+      source,
       detail: detail || 'Manual task created from Tasks board.',
+      priority,
     };
 
     const existing = await readManualTasks();
@@ -240,29 +315,59 @@ async function postHandler(req: NextRequest) {
   }
 }
 
-async function patchHandler(req: NextRequest) {
+async function patchHandler(req: NextRequest, session: { user?: { id?: string } }) {
   try {
     const body = await req.json();
-    const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
-    const status = body?.status as TaskStatus;
 
-    const validStatus: TaskStatus[] = ['todo', 'in-progress', 'review', 'done', 'inbox'];
+    if (body?.action === 'add-comment') {
+      const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
+      const text = typeof body?.text === 'string' ? body.text.trim() : '';
+      const author = typeof body?.author === 'string' && body.author.trim() ? body.author.trim() : 'Agent';
+      const authorType = body?.authorType === 'sub-agent' || body?.authorType === 'human' ? body.authorType : 'main-agent';
+
+      if (!taskId || !text) return NextResponse.json({ error: 'taskId and text are required' }, { status: 400 });
+
+      const store = await readComments();
+      const nextComment: TaskComment = {
+        id: `c-${Date.now().toString(36)}`,
+        taskId,
+        author,
+        authorType,
+        text,
+        createdAt: new Date().toISOString(),
+      };
+
+      store.comments[taskId] = [nextComment, ...(store.comments[taskId] ?? [])];
+      await writeComments(store);
+
+      return NextResponse.json({ ok: true, comment: nextComment });
+    }
+
+    const taskId = typeof body?.taskId === 'string' ? body.taskId : '';
+    const status = normalizeStatus(body?.status as string);
+    const priority = body?.priority ? normalizePriority(body?.priority as string) : undefined;
 
     if (!taskId) return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
-    if (!validStatus.includes(status)) return NextResponse.json({ error: 'invalid status' }, { status: 400 });
+
+    const actorId = String(body?.actorId ?? session?.user?.id ?? '');
+    if (status === 'done' && !DONE_ALLOWED_ACTOR_IDS.has(actorId)) {
+      return NextResponse.json({ error: 'Hanya owner yang boleh memindahkan task ke Done.' }, { status: 403 });
+    }
 
     const state = await readBoardState();
     state.overrides[taskId] = {
+      ...state.overrides[taskId],
       status,
+      priority: priority ?? state.overrides[taskId]?.priority,
       updatedAt: new Date().toISOString(),
     };
 
     await writeBoardState(state);
 
-    return NextResponse.json({ ok: true, taskId, status, updatedAt: state.overrides[taskId].updatedAt });
+    return NextResponse.json({ ok: true, taskId, status, priority: state.overrides[taskId].priority, updatedAt: state.overrides[taskId].updatedAt });
   } catch (error) {
-    console.error('Error persisting task status:', error);
-    return NextResponse.json({ error: 'Failed to persist task status' }, { status: 500 });
+    console.error('Error persisting task update:', error);
+    return NextResponse.json({ error: 'Failed to persist task update' }, { status: 500 });
   }
 }
 
