@@ -128,15 +128,6 @@ export default function AgentTasksPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
-        {(Object.entries(definitions) as Array<[string, StatusDefinition]>).map(([key, item]) => (
-          <div key={key} className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs font-semibold text-white">{item.label}</p>
-            <p className="text-[11px] text-white/55 mt-1 leading-relaxed">{item.description}</p>
-          </div>
-        ))}
-      </div>
-
       {error && <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-3">

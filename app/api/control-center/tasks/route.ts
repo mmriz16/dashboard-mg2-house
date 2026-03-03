@@ -75,12 +75,33 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
   const lines = markdown.split(/\r?\n/);
   const tasks: TaskItem[] = [];
 
+  let inLegendBlock = false;
+
   for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (/^Status legend:/i.test(trimmed)) {
+      inLegendBlock = true;
+      continue;
+    }
+
+    if (inLegendBlock && trimmed === '---') {
+      inLegendBlock = false;
+      continue;
+    }
+
+    if (inLegendBlock) continue;
+
     const match = line.match(/^\s*- \[(.| )\]\s+(.+)$/);
     if (!match) continue;
 
     const marker = match[1].trim();
     const title = match[2].trim();
+
+    // Skip generic legend-style pseudo tasks if they still appear.
+    if (/^(todo|in progress|in-progress|done|review)$/i.test(title)) {
+      continue;
+    }
 
     let status: TaskStatus = 'inbox';
     if (marker.toLowerCase() === 'x') status = 'done';
