@@ -342,6 +342,13 @@ function SidebarContent({ onLogout }: SidebarProps) {
                   icon={<MG2Icon name="tasks" size={16} className="opacity-80" />}
                 />
               </Link>
+              <Link href="/agent/memory" className="w-full">
+                <MenuItem
+                  variant={pathname === "/agent/memory" ? "primary" : "secondary"}
+                  label="Memory"
+                  icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
+                />
+              </Link>
             </div>
           </div>
         )}

@@ -1,15 +1,63 @@
 {
   "tasks": [
     {
-      "id": "manual-mmaqfuv7",
-      "title": "Testing Task aja",
-      "status": "backlog",
+      "id": "manual-memory-page-api-connect-20260304",
+      "title": "Memory Page: Connect to real API + add month/year dropdown UI",
+      "status": "planning",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-03T16:17:30.000Z",
+      "updatedAt": "2026-03-04T15:44:00.000Z",
       "source": "manual",
-      "detail": "Laporin keadaan sekarang",
+      "detail": "Memory page UI sudah dibuat (app/(openclaw)/agent/memory/page.tsx). Todo: (1) Connect ke real API /api/control-center/memory untuk fetch daily memory files, (2) Tambah dropdown UI untuk month/year picker (sekarang baru state-nya aja), (3) Remove mock data, (4) Handle loading/error state dengan proper UI.",
       "priority": "medium",
+      "needsRework": false
+    },
+    {
+      "id": "manual-files-page-api-connect-20260304",
+      "title": "Files Page: Connect to real API for content fetching",
+      "status": "planning",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-04T15:44:00.000Z",
+      "source": "manual",
+      "detail": "Files page UI sudah dibuat (app/(openclaw)/agent/files/page.tsx). Todo: (1) Connect ke real API /api/control-center/files untuk fetch file list, (2) Fetch real file content saat file selected (bukan mock content), (3) Handle loading/error state dengan proper UI.",
+      "priority": "medium",
+      "needsRework": false
+    },
+    {
+      "id": "manual-kanban-flicker-fix-20260304",
+      "title": "Fix Kanban board flickering on reload",
+      "status": "planning",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-04T14:23:00.000Z",
+      "source": "manual",
+      "detail": "Fix flickering caused by triple fetch conflict (SSE + polling + onerror). Solution: (1) Add debounce with lastFetchRef (min 2s between fetches), (2) Remove loading state flicker - show cached data instead of 'Loading tasks...', (3) Deduplicate SSE + polling triggers. Affected file: app/(openclaw)/agent/tasks/page.tsx",
+      "priority": "high",
+      "needsRework": false
+    },
+    {
+      "id": "manual-token-usage-tracking-20260304",
+      "title": "Token Usage Tracking per Kanban Task",
+      "status": "planning",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-04T14:20:00.000Z",
+      "source": "manual",
+      "detail": "Implement token logging + display di Kanban board: (1) Tambah field tokenUsage di schema task (promptTokens, completionTokens, totalTokens, modelBreakdown), (2) Update API endpoint tasks untuk include tokenUsage, (3) Setiap agent action log token ke task saat create/update, (4) UI Kanban tampilkan badge token count per card, (5) Summary view untuk total token per task + aggregate board.",
+      "priority": "high",
+      "needsRework": false
+    },
+    {
+      "id": "manual-mmaubf5j",
+      "title": "Implement SSE stream + live timestamp ticker pada Kanban Tasks",
+      "status": "review",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-03T16:46:44.599Z",
+      "source": "manual",
+      "detail": "Menambahkan endpoint SSE /api/control-center/tasks/stream, event bus tasks-events, publish event pada create/update/delete task, dan ticker 30 detik + polling fallback 10 detik di UI tasks.",
+      "priority": "high",
       "needsRework": false
     },
     {
@@ -39,10 +87,10 @@
     {
       "id": "manual-subagent-operating-model-20260303",
       "title": "Rancang operating model sub-agent permanen: Builder, UI Guardian, QA Verifier",
-      "status": "planning",
+      "status": "in-progress",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-03T16:02:20.000Z",
+      "updatedAt": "2026-03-04T15:55:00.000Z",
       "source": "manual",
       "detail": "Finalisasi role, handoff, SLA, dan guardrail: Main Agent sebagai CEO/Orchestrator; Builder fokus implementasi, UI Guardian validasi Design System.md, QA Verifier validasi scope dan bug/error sebelum review final user.",
       "priority": "high",

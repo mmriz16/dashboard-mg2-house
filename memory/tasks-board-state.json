@@ -1,0 +1,44 @@
+{
+  "overrides": {
+    "manual-memory-page-api-connect-20260304": {
+      "status": "planning",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T15:44:00.000Z"
+    },
+    "manual-files-page-api-connect-20260304": {
+      "status": "planning",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T15:44:00.000Z"
+    },
+    "manual-kanban-flicker-fix-20260304": {
+      "status": "planning",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T14:48:46.388Z"
+    },
+    "manual-token-usage-tracking-20260304": {
+      "status": "planning",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T14:20:00.000Z"
+    },
+    "manual-memory-page-spec-20260303": {
+      "status": "done",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T14:00:00.000Z"
+    },
+    "manual-mmaubf5j": {
+      "status": "done",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T14:00:00.000Z"
+    },
+    "manual-memory-page-filter-20260303": {
+      "status": "in-progress",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T14:48:43.425Z"
+    },
+    "manual-subagent-operating-model-20260303": {
+      "status": "in-progress",
+      "needsRework": false,
+      "updatedAt": "2026-03-04T15:55:00.000Z"
+    }
+  }
+}

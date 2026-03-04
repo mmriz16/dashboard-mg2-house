@@ -212,11 +212,39 @@ export function UpdateCard({
   );
   const notesToRender = isXSyncedWithGithub && xNotes && xNotes.length > 0 ? xNotes : notes;
   const resolvedPreviewSrc =
-    (isXSyncedWithGithub ? xPreviewImage : null) ||
     resolveGithubReleasePreview(latestReleaseUrl) ||
+    (isXSyncedWithGithub ? xPreviewImage : null) ||
     resolveGithubReleasePreview(previewLink) ||
     previewImageUrl ||
     DEFAULT_PREVIEW_IMAGE;
+
+  const [displayedPreviewSrc, setDisplayedPreviewSrc] = useState(resolvedPreviewSrc);
+
+  useEffect(() => {
+    if (resolvedPreviewSrc === displayedPreviewSrc) return;
+
+    // Never downgrade from a real preview to the default fallback image.
+    const isCurrentReal = displayedPreviewSrc !== DEFAULT_PREVIEW_IMAGE;
+    const isNewDefault = resolvedPreviewSrc === DEFAULT_PREVIEW_IMAGE;
+    if (isCurrentReal && isNewDefault) return;
+
+    const img = new window.Image();
+    let cancelled = false;
+
+    img.onload = () => {
+      if (!cancelled) setDisplayedPreviewSrc(resolvedPreviewSrc);
+    };
+    img.onerror = () => {
+      // New URL failed to load — keep showing the current displayedPreviewSrc.
+    };
+    img.src = resolvedPreviewSrc;
+
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [resolvedPreviewSrc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section
@@ -282,14 +310,9 @@ export function UpdateCard({
           <a href={latestReleaseUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={resolvedPreviewSrc}
+              src={displayedPreviewSrc}
               alt="OpenClaw release preview"
               className="h-full w-full object-cover"
-              onError={(event) => {
-                const img = event.currentTarget;
-                if (img.src.includes(DEFAULT_PREVIEW_IMAGE)) return;
-                img.src = DEFAULT_PREVIEW_IMAGE;
-              }}
             />
           </a>
         </div>

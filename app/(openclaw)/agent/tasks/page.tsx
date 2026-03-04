@@ -33,12 +33,12 @@ type StatusDefinition = {
   description: string;
 };
 
-const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; dot: string }> = [
-  { key: "planning", label: "Planning", dot: "bg-cyan-300" },
-  { key: "backlog", label: "Backlog", dot: "bg-slate-300" },
-  { key: "in-progress", label: "In Progress", dot: "bg-violet-400" },
-  { key: "review", label: "Review", dot: "bg-amber-400" },
-  { key: "done", label: "Done", dot: "bg-emerald-400" },
+const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; badgeColor: string; badgeBg: string }> = [
+  { key: "planning", label: "Planning", badgeColor: "text-[#00a6f4]", badgeBg: "bg-[rgba(0,166,244,0.1)]" },
+  { key: "backlog", label: "Backlog", badgeColor: "text-white", badgeBg: "bg-[rgba(255,255,255,0.1)]" },
+  { key: "in-progress", label: "In Progress", badgeColor: "text-[#b558ff]", badgeBg: "bg-[rgba(181,88,255,0.1)]" },
+  { key: "review", label: "Review", badgeColor: "text-[#f0b100]", badgeBg: "bg-[rgba(240,177,0,0.1)]" },
+  { key: "done", label: "Done", badgeColor: "text-[#00c950]", badgeBg: "bg-[rgba(0,201,80,0.1)]" },
 ];
 
 const PRIORITY_OPTIONS: Priority[] = ["low", "medium", "high"];
@@ -299,30 +299,72 @@ export default function AgentTasksPage() {
   };
 
   return (
-    <main className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-manrope font-medium text-white">Tasks</h1>
-        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">Planning → Backlog → In Progress → Review → (Done / Backlog)</p>
+    <main className="flex h-full w-full flex-col gap-[10px] overflow-hidden">
+      <div className="flex flex-col gap-1 mb-2">
+        <h1 className="text-2xl font-manrope font-medium text-white">Agent Tasks</h1>
+        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
+          Manajemen antrian task untuk Agent
+        </p>
+      </div>
+      <div className="flex w-full shrink-0 flex-col items-start overflow-hidden rounded-[14px] border border-white/10 bg-[#151618] p-1">
+        <div className="flex w-full shrink-0 items-center justify-between px-4 py-[10px]">
+          <h1 className="font-manrope text-base font-normal capitalize text-white">Tasks Status</h1>
+          <div className="flex shrink-0 items-center gap-[10px]">
+            <div className="relative">
+              <select
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value as any)}
+                className="h-10 w-[150px] appearance-none rounded-lg border border-white/10 bg-[#111214] pl-3 pr-8 font-manrope text-sm text-white outline-none"
+              >
+                <option value="all">All Agents</option>
+                <option value="main-agent">Main Agent</option>
+                <option value="sub-agent">Sub-Agent</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setNewTaskOpen(true)}
+              className="flex h-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(0,166,244,0.1)] px-3 font-manrope text-sm text-[#00a6f4] transition duration-200 hover:bg-[rgba(0,166,244,0.2)]"
+            >
+              New Tasks
+            </button>
+            <button
+              onClick={() => void fetchTasks()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-[#111214] text-white/70 transition duration-200 hover:bg-white/5"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21v-5h5" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-6 rounded-[10px] bg-[#111214] p-4 text-white lg:flex-nowrap lg:gap-[25px]">
+          <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
+            <p className="font-manrope text-[10px] text-white/50">Active Queue</p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">{String(summary.thisWeek).padStart(2, '0')}</p>
+          </div>
+          <div className="hidden h-14 w-px bg-white/10 lg:block" />
+          <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
+            <p className="font-manrope text-[10px] text-white/50">In Progress</p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00a6f4]">{String(summary.inProgress).padStart(2, '0')}</p>
+          </div>
+          <div className="hidden h-14 w-px bg-white/10 lg:block" />
+          <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
+            <p className="font-manrope text-[10px] text-white/50">Total Tasks</p>
+            <p className="font-ibm-plex-mono text-[26px] text-white">{String(summary.total).padStart(2, '0')}</p>
+          </div>
+          <div className="hidden h-14 w-px bg-white/10 lg:block" />
+          <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
+            <p className="font-manrope text-[10px] text-white/50">Completion Tasks</p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">{summary.completion}%</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <StatCard value={summary.thisWeek} label="Active Queue" color="text-emerald-300" />
-        <StatCard value={summary.inProgress} label="In Progress" color="text-violet-300" />
-        <StatCard value={summary.total} label="Total" color="text-white" />
-        <StatCard value={`${summary.completion}%`} label="Completion" color="text-fuchsia-300" />
-      </div>
+      {error && <div className="rounded-[14px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2">
-        <button onClick={() => setNewTaskOpen(true)} className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400">+ New Task</button>
-        <button onClick={() => setOwnerFilter("all")} className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "all" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}>All owners</button>
-        <button onClick={() => setOwnerFilter("main-agent")} className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "main-agent" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}>Main Agent</button>
-        <button onClick={() => setOwnerFilter("sub-agent")} className={`rounded-lg px-3 py-2 text-xs ${ownerFilter === "sub-agent" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5"}`}>Sub-Agent</button>
-        <button onClick={() => void fetchTasks()} className="ml-auto rounded-lg border border-white/20 px-3 py-2 text-xs text-white/80 hover:bg-white/5">Refresh</button>
-      </div>
-
-      {error && <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+      <div className="grid min-h-0 flex-1 w-full grid-cols-1 gap-[10px] md:grid-cols-2 xl:grid-cols-5">
         {MAIN_COLUMNS.map((column) => (
           <section
             key={column.key}
@@ -332,33 +374,62 @@ export default function AgentTasksPage() {
               void moveTask(draggingTaskId, column.key);
               setDraggingTaskId(null);
             }}
-            className="min-h-[460px] rounded-2xl border border-border bg-surface-card p-3"
+            className="flex h-full flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[#151618] p-1"
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><span className={`h-2 w-2 rounded-full ${column.dot}`} />{column.label}</h2>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/70">{grouped[column.key].length}</span>
+            <div className="flex w-full shrink-0 items-center justify-between p-4">
+              <h2 className="font-manrope text-base font-normal capitalize text-white">{column.label}</h2>
+              <div className={`flex h-4 items-center justify-center rounded-[20px] px-1.5 ${column.badgeBg}`}>
+                <span className={`font-ibm-plex-mono text-[10px] uppercase leading-none ${column.badgeColor}`}>{String(grouped[column.key].length).padStart(2, '0')}</span>
+              </div>
             </div>
 
-            {loading ? <p className="text-xs text-white/50">Loading tasks...</p> : grouped[column.key].length === 0 ? <p className="text-xs text-white/35">No tasks</p> : (
-              <div className="space-y-2">
-                {grouped[column.key].map((task) => (
-                  <article key={task.id} draggable onClick={() => setSelectedTask(task)} onDragStart={() => setDraggingTaskId(task.id)} onDragEnd={() => setDraggingTaskId(null)} className="cursor-grab rounded-xl border border-white/10 bg-white/5 p-3 active:cursor-grabbing hover:bg-white/[0.08]">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-white leading-snug line-clamp-2">{task.title}</p>
-                      <div className="flex flex-col items-end gap-1">
-                        <PriorityBadge priority={task.priority} />
-                        {task.needsRework && <ReworkBadge />}
+            <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden rounded-[10px] bg-[#111214] p-1">
+              {loading ? (
+                <div className="flex w-full shrink-0 items-center justify-center py-2">
+                  <p className="font-ibm-plex-mono text-[10px] uppercase text-white/50">Loading tasks...</p>
+                </div>
+              ) : grouped[column.key].length === 0 ? (
+                <div className="flex w-full shrink-0 items-center justify-center py-2">
+                  <p className="font-ibm-plex-mono text-[10px] uppercase text-white/50">No tasks</p>
+                </div>
+              ) : (
+                grouped[column.key].map((task) => {
+                  let bgBorderCls = "bg-[#151618] border-transparent";
+                  if (task.priority === "high") {
+                    bgBorderCls = "bg-[rgba(251,44,54,0.05)] border-[rgba(251,44,54,0.15)]";
+                  } else if (task.priority === "medium") {
+                    bgBorderCls = "bg-[rgba(240,177,0,0.05)] border-[rgba(240,177,0,0.15)]";
+                  } else if (task.priority === "low") {
+                    bgBorderCls = "bg-[rgba(0,201,80,0.05)] border-[rgba(0,201,80,0.15)]";
+                  }
+
+                  return (
+                    <article
+                      key={task.id}
+                      draggable
+                      onClick={() => setSelectedTask(task)}
+                      onDragStart={() => setDraggingTaskId(task.id)}
+                      onDragEnd={() => setDraggingTaskId(null)}
+                      className={`flex w-full cursor-grab active:cursor-grabbing flex-col gap-1 items-start justify-center rounded-lg border p-2 transition duration-200 hover:brightness-110 ${bgBorderCls}`}
+                    >
+                      <div className="flex w-full shrink-0 items-center justify-between">
+                        <div className="flex items-center gap-1 font-ibm-plex-mono text-[10px] uppercase text-white/50">
+                          <span>{task.ownerName}</span>
+                          <span>·</span>
+                          <span>{savingId === task.id ? "saving" : formatTaskTimestamp(task.updatedAt, clock)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {task.needsRework && <ReworkBadge />}
+                          <PriorityBadge priority={task.priority} />
+                        </div>
                       </div>
-                    </div>
-                    {task.detail && <p className="mt-1 text-xs text-white/45 line-clamp-2">{task.detail.replace(/\n+/g, " ")}</p>}
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-white/60">
-                      <span>{task.ownerName}</span>
-                      <span>{savingId === task.id ? "saving..." : formatTaskTimestamp(task.updatedAt, clock)}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
+                      <p className="line-clamp-2 w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-sm font-normal text-white">{task.title}</p>
+                      <p className="w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-[10px] font-normal text-white/50 line-clamp-2">{task.detail?.replace(/\n+/g, " ") || "No detail"}</p>
+                    </article>
+                  );
+                })
+              )}
+            </div>
           </section>
         ))}
       </div>
@@ -492,19 +563,31 @@ function weightPriority(priority: Priority) {
 }
 
 function PriorityBadge({ priority }: { priority: Priority }) {
-  const cls = priority === "high" ? "bg-red-500/20 text-red-200" : priority === "medium" ? "bg-amber-500/20 text-amber-200" : "bg-slate-500/20 text-slate-200";
-  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>{priority.toUpperCase()}</span>;
+  if (priority === "high") {
+    return (
+      <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(251,44,54,0.1)] px-1.5">
+        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">{priority}</p>
+      </div>
+    );
+  }
+  if (priority === "medium") {
+    return (
+      <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(240,177,0,0.1)] px-1.5">
+        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#f0b100]">{priority}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(0,201,80,0.1)] px-1.5">
+      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#00c950]">{priority}</p>
+    </div>
+  );
 }
 
 function ReworkBadge() {
-  return <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold text-rose-200">NEEDS REWORK</span>;
-}
-
-function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-      <p className={`text-2xl font-semibold ${color}`}>{value}</p>
-      <p className="text-xs text-white/50">{label}</p>
+    <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(251,44,54,0.1)] px-1.5">
+      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">REWORK</p>
     </div>
   );
 }
