@@ -7,6 +7,19 @@
   type HeartbeatConfig,
 } from './client';
 
+export {
+  shouldSpawnSubAgent,
+  selectRoleForTask,
+  buildSpawnParams,
+  parseHandoff,
+  getFallbackModel,
+  estimateCompletionTime,
+  type SpawnConfig,
+  type SpawnResult,
+  type HandoffData,
+  type SubAgentRole,
+} from './spawn';
+
 const getClient = () => {
   const baseUrl =
     process.env.OPENCLAW_API_URL ||
