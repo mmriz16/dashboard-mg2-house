@@ -1,9 +1,24 @@
 {
   "overrides": {
-    "manual-memory-page-api-connect-20260304": {
-      "status": "planning",
+    "manual-wallpaper-native-module-20260306": {
+      "status": "review",
       "needsRework": false,
-      "updatedAt": "2026-03-04T15:44:00.000Z"
+      "updatedAt": "2026-03-06T11:00:00.000Z"
+    },
+    "manual-wallpaper-auto-update-20260306": {
+      "status": "review",
+      "needsRework": false,
+      "updatedAt": "2026-03-06T11:15:00.000Z"
+    },
+    "manual-wallpaper-eas-build-setup-20260306": {
+      "status": "review",
+      "needsRework": false,
+      "updatedAt": "2026-03-06T11:45:00.000Z"
+    },
+    "manual-memory-page-api-connect-20260304": {
+      "status": "review",
+      "needsRework": false,
+      "updatedAt": "2026-03-06T23:40:00.000Z"
     },
     "manual-files-page-api-connect-20260304": {
       "status": "planning",
@@ -31,9 +46,8 @@
       "updatedAt": "2026-03-04T14:00:00.000Z"
     },
     "manual-memory-page-filter-20260303": {
-      "status": "in-progress",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T14:48:43.425Z"
+      "updatedAt": "2026-03-06T21:04:51.892Z",
+      "status": "review"
     },
     "manual-subagent-operating-model-20260303": {
       "status": "done",
@@ -46,9 +60,8 @@
       "updatedAt": "2026-03-05T21:02:00.000Z"
     },
     "manual-subagent-handoff-format-20260304": {
-      "status": "planning",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T16:49:00.000Z"
+      "updatedAt": "2026-03-06T21:06:01.193Z",
+      "status": "review"
     },
     "manual-subagent-error-handling-20260304": {
       "status": "planning",
@@ -64,6 +77,11 @@
       "status": "planning",
       "needsRework": false,
       "updatedAt": "2026-03-05T16:47:00.000Z"
+    },
+    "manual-hierarchy-agent-registry-20260307": {
+      "status": "planning",
+      "needsRework": false,
+      "updatedAt": "2026-03-07T00:10:00.000Z"
     }
   }
 }

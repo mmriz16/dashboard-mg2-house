@@ -9,7 +9,7 @@ import { GatewayCard } from "@/components/ui/(openclaw)/(card)/gateway";
 import UpdateCard from "@/components/ui/(openclaw)/(card)/update";
 import { ActivityLogCard } from "@/components/ui/(openclaw)/(card)/activity-log";
 import { AlertsCard } from "@/components/ui/(openclaw)/(card)/alerts";
-import { QuickActionsCard } from "@/components/ui/(openclaw)/(card)/quick-actions";
+import { TokenUsageCard } from "@/components/ui/(openclaw)/(card)/token-usage";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -116,21 +116,26 @@ export default function DashboardPage() {
 
           <div className="flex flex-col gap-2.5 w-full">
             <GatewayCard autoFetch={true} />
+
             <div className="flex flex-col lg:flex-row gap-2.5 w-full">
-              <div className="w-full lg:shrink-0 lg:max-w-[400px]">
+              {/* Left column — Update */}
+              <div className="w-full lg:max-w-[360px] lg:shrink-0">
                 <UpdateCard />
               </div>
+
+              {/* Center column — Activity Log (fills remaining space) */}
               <div className="flex-1 min-w-0 relative min-h-[300px]">
                 <div className="absolute inset-0">
                   <ActivityLogCard autoFetch={true} />
                 </div>
               </div>
-              <div className="w-full lg:shrink-0 lg:max-w-[400px]">
+
+              {/* Right column — Token Usage + Alerts */}
+              <div className="w-full lg:max-w-[360px] lg:shrink-0 flex flex-col gap-2.5">
+                <TokenUsageCard />
                 <AlertsCard
                   items={alertItems}
-                  onViewAll={() => {
-                    router.push("/openclaw/agent/automations");
-                  }}
+                  onViewAll={() => router.push("/openclaw/agent/automations")}
                 />
               </div>
             </div>

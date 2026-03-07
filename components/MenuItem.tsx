@@ -49,7 +49,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
     <div
       onClick={!isDisabled ? onClick : undefined}
       className={`
-        w-60 h-10 p-2 rounded-lg inline-flex justify-start items-center gap-2.5
+        w-full h-10 p-2 rounded-lg inline-flex justify-start items-center gap-2.5
         transition-all cursor-pointer
         ${isDisabled ? variantStyles.disabled : active ? activeStyle : variantStyles[variant]}
         ${className}

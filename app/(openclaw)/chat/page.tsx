@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { CSSProperties } from "react";
 import React, { useRef, useEffect, useMemo, useState } from "react";
@@ -857,7 +857,7 @@ function ChatPageContent() {
             isGatewayOnline ? "System Online" : "System Offline"
           }
         />
-        <div className="flex flex-col p-6 w-full h-full min-h-0 overflow-hidden relative">
+        <div className="flex flex-col p-0 w-full h-full min-h-0 overflow-hidden relative">
           {isEmptyState ? (
             <div
               className="flex-1 relative flex items-center justify-center overflow-hidden"
@@ -965,7 +965,7 @@ function ChatPageContent() {
                 />
               </div>
 
-              <div className="w-full max-w-5xl z-10">
+              <div className="w-full max-w-[600px] z-10">
                 <TextEditor onSubmit={handleSendMessage} />
               </div>
             </div>

@@ -47,7 +47,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           systemOnline={isGatewayOnline}
           systemStatusLabel={isGatewayOnline ? "System Online" : "System Offline"}
         />
-        <div className="flex-1 min-h-0 p-[24px] overflow-hidden">{children}</div>
+        <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
       </div>
     </div>
   );

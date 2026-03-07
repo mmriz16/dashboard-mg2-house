@@ -1,0 +1,167 @@
+{
+  "entries": [
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 150,
+      "completionTokens": 280,
+      "totalTokens": 430,
+      "timestamp": "2026-03-05T14:30:00.000Z"
+    },
+    {
+      "model": "qwen3-coder-plus",
+      "promptTokens": 520,
+      "completionTokens": 730,
+      "totalTokens": 1250,
+      "timestamp": "2026-03-05T13:45:00.000Z"
+    },
+    {
+      "model": "glm-5",
+      "promptTokens": 340,
+      "completionTokens": 180,
+      "totalTokens": 520,
+      "timestamp": "2026-03-05T12:20:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 890,
+      "completionTokens": 1240,
+      "totalTokens": 2130,
+      "timestamp": "2026-03-05T11:15:00.000Z"
+    },
+    {
+      "model": "kimi-k2.5",
+      "promptTokens": 450,
+      "completionTokens": 320,
+      "totalTokens": 770,
+      "timestamp": "2026-03-05T10:30:00.000Z"
+    },
+    {
+      "model": "minimax-m2.5",
+      "promptTokens": 280,
+      "completionTokens": 190,
+      "totalTokens": 470,
+      "timestamp": "2026-03-05T09:45:00.000Z"
+    },
+    {
+      "model": "qwen3-coder-plus",
+      "promptTokens": 1250,
+      "completionTokens": 2340,
+      "totalTokens": 3590,
+      "timestamp": "2026-03-05T08:30:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 670,
+      "completionTokens": 890,
+      "totalTokens": 1560,
+      "timestamp": "2026-03-05T07:15:00.000Z"
+    },
+    {
+      "model": "glm-5",
+      "promptTokens": 420,
+      "completionTokens": 380,
+      "totalTokens": 800,
+      "timestamp": "2026-03-05T06:00:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 1890,
+      "completionTokens": 2450,
+      "totalTokens": 4340,
+      "timestamp": "2026-03-04T22:30:00.000Z"
+    },
+    {
+      "model": "qwen3-coder-plus",
+      "promptTokens": 2340,
+      "completionTokens": 3120,
+      "totalTokens": 5460,
+      "timestamp": "2026-03-04T18:45:00.000Z"
+    },
+    {
+      "model": "kimi-k2.5",
+      "promptTokens": 890,
+      "completionTokens": 670,
+      "totalTokens": 1560,
+      "timestamp": "2026-03-04T14:20:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 1230,
+      "completionTokens": 1680,
+      "totalTokens": 2910,
+      "timestamp": "2026-03-04T10:15:00.000Z"
+    },
+    {
+      "model": "glm-5",
+      "promptTokens": 560,
+      "completionTokens": 490,
+      "totalTokens": 1050,
+      "timestamp": "2026-03-04T08:00:00.000Z"
+    },
+    {
+      "model": "qwen3-coder-plus",
+      "promptTokens": 3450,
+      "completionTokens": 4230,
+      "totalTokens": 7680,
+      "timestamp": "2026-03-03T20:30:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 2340,
+      "completionTokens": 3120,
+      "totalTokens": 5460,
+      "timestamp": "2026-03-03T15:45:00.000Z"
+    },
+    {
+      "model": "minimax-m2.5",
+      "promptTokens": 670,
+      "completionTokens": 450,
+      "totalTokens": 1120,
+      "timestamp": "2026-03-03T11:20:00.000Z"
+    },
+    {
+      "model": "kimi-k2.5",
+      "promptTokens": 1120,
+      "completionTokens": 890,
+      "totalTokens": 2010,
+      "timestamp": "2026-03-03T09:00:00.000Z"
+    },
+    {
+      "model": "qwen3.5-plus",
+      "promptTokens": 1780,
+      "completionTokens": 2340,
+      "totalTokens": 4120,
+      "timestamp": "2026-03-02T22:15:00.000Z"
+    },
+    {
+      "model": "qwen3-coder-plus",
+      "promptTokens": 4560,
+      "completionTokens": 5890,
+      "totalTokens": 10450,
+      "timestamp": "2026-03-02T16:30:00.000Z"
+    }
+  ],
+  "requestCounts": [
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-05T14:30:00.000Z"},
+    {"model": "qwen3-coder-plus", "timestamp": "2026-03-05T13:45:00.000Z"},
+    {"model": "glm-5", "timestamp": "2026-03-05T12:20:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-05T11:15:00.000Z"},
+    {"model": "kimi-k2.5", "timestamp": "2026-03-05T10:30:00.000Z"},
+    {"model": "minimax-m2.5", "timestamp": "2026-03-05T09:45:00.000Z"},
+    {"model": "qwen3-coder-plus", "timestamp": "2026-03-05T08:30:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-05T07:15:00.000Z"},
+    {"model": "glm-5", "timestamp": "2026-03-05T06:00:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-04T22:30:00.000Z"},
+    {"model": "qwen3-coder-plus", "timestamp": "2026-03-04T18:45:00.000Z"},
+    {"model": "kimi-k2.5", "timestamp": "2026-03-04T14:20:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-04T10:15:00.000Z"},
+    {"model": "glm-5", "timestamp": "2026-03-04T08:00:00.000Z"},
+    {"model": "qwen3-coder-plus", "timestamp": "2026-03-03T20:30:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-03T15:45:00.000Z"},
+    {"model": "minimax-m2.5", "timestamp": "2026-03-03T11:20:00.000Z"},
+    {"model": "kimi-k2.5", "timestamp": "2026-03-03T09:00:00.000Z"},
+    {"model": "qwen3.5-plus", "timestamp": "2026-03-02T22:15:00.000Z"},
+    {"model": "qwen3-coder-plus", "timestamp": "2026-03-02T16:30:00.000Z"}
+  ],
+  "lastUpdated": "2026-03-05T14:30:00.000Z"
+}

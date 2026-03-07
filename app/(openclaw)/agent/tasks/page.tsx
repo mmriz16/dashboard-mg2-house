@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-type TaskStatus = "planning" | "backlog" | "in-progress" | "review" | "done" | "inbox";
+type TaskStatus =
+  | "planning"
+  | "backlog"
+  | "in-progress"
+  | "review"
+  | "done"
+  | "inbox";
 type OwnerType = "main-agent" | "sub-agent";
 type Priority = "low" | "medium" | "high";
 
@@ -33,20 +41,54 @@ type StatusDefinition = {
   description: string;
 };
 
-const MAIN_COLUMNS: Array<{ key: Exclude<TaskStatus, "inbox">; label: string; badgeColor: string; badgeBg: string }> = [
-  { key: "planning", label: "Planning", badgeColor: "text-[#00a6f4]", badgeBg: "bg-[rgba(0,166,244,0.1)]" },
-  { key: "backlog", label: "Backlog", badgeColor: "text-white", badgeBg: "bg-[rgba(255,255,255,0.1)]" },
-  { key: "in-progress", label: "In Progress", badgeColor: "text-[#b558ff]", badgeBg: "bg-[rgba(181,88,255,0.1)]" },
-  { key: "review", label: "Review", badgeColor: "text-[#f0b100]", badgeBg: "bg-[rgba(240,177,0,0.1)]" },
-  { key: "done", label: "Done", badgeColor: "text-[#00c950]", badgeBg: "bg-[rgba(0,201,80,0.1)]" },
+const MAIN_COLUMNS: Array<{
+  key: Exclude<TaskStatus, "inbox">;
+  label: string;
+  badgeColor: string;
+  badgeBg: string;
+}> = [
+  {
+    key: "planning",
+    label: "Planning",
+    badgeColor: "text-[#00a6f4]",
+    badgeBg: "bg-[rgba(0,166,244,0.1)]",
+  },
+  {
+    key: "backlog",
+    label: "Backlog",
+    badgeColor: "text-white",
+    badgeBg: "bg-[rgba(255,255,255,0.1)]",
+  },
+  {
+    key: "in-progress",
+    label: "In Progress",
+    badgeColor: "text-[#b558ff]",
+    badgeBg: "bg-[rgba(181,88,255,0.1)]",
+  },
+  {
+    key: "review",
+    label: "Review",
+    badgeColor: "text-[#f0b100]",
+    badgeBg: "bg-[rgba(240,177,0,0.1)]",
+  },
+  {
+    key: "done",
+    label: "Done",
+    badgeColor: "text-[#00c950]",
+    badgeBg: "bg-[rgba(0,201,80,0.1)]",
+  },
 ];
 
 const PRIORITY_OPTIONS: Priority[] = ["low", "medium", "high"];
 
 export default function AgentTasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [definitions, setDefinitions] = useState<Record<string, StatusDefinition>>({});
-  const [commentsMap, setCommentsMap] = useState<Record<string, TaskComment[]>>({});
+  const [definitions, setDefinitions] = useState<
+    Record<string, StatusDefinition>
+  >({});
+  const [commentsMap, setCommentsMap] = useState<Record<string, TaskComment[]>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,43 +100,67 @@ export default function AgentTasksPage() {
   const [newTaskDetail, setNewTaskDetail] = useState("");
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("planning");
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>("medium");
+  const [newTaskOwner, setNewTaskOwner] = useState("Main Agent");
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingTask, setDeletingTask] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [clock, setClock] = useState(() => Date.now());
 
-  const fetchTasks = async () => {
-    try {
+  // Debounce ref to prevent rapid refetches
+  const lastFetchRef = useRef<number>(0);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  const fetchTasks = async (force = false) => {
+    const now = Date.now();
+    // Debounce: min 2s between fetches to prevent flickering
+    if (!force && now - lastFetchRef.current < 2000) {
+      return;
+    }
+
+    lastFetchRef.current = now;
+
+    // Don't show loading state after first load to prevent flicker
+    if (!hasLoadedOnce) {
       setLoading(true);
-      setError(null);
+    }
+
+    setError(null);
+
+    try {
       const res = await fetch("/api/control-center/tasks");
       if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`);
       const data = await res.json();
       setTasks(Array.isArray(data?.tasks) ? data.tasks : []);
       setDefinitions(data?.statusDefinitions ?? {});
       setCommentsMap(data?.comments ?? {});
+      setHasLoadedOnce(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load tasks");
+      // Keep showing cached data on error, don't reset to empty state
+      console.error("Failed to fetch tasks:", err);
+      if (!hasLoadedOnce) {
+        setError(err instanceof Error ? err.message : "Failed to load tasks");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void fetchTasks();
+    void fetchTasks(true); // Force initial load
 
-    const es = new EventSource('/api/control-center/tasks/stream');
+    const es = new EventSource("/api/control-center/tasks/stream");
     const onTaskChange = () => {
-      void fetchTasks();
+      void fetchTasks(false); // Debounced fetch
     };
 
-    es.addEventListener('task-change', onTaskChange);
+    es.addEventListener("task-change", onTaskChange);
     es.onerror = () => {
-      void fetchTasks();
+      // Silent fail on SSE error - polling will catch up
+      es.close();
     };
 
     const poll = setInterval(() => {
-      void fetchTasks();
+      void fetchTasks(false); // Debounced fetch
     }, 10000);
 
     const ticker = setInterval(() => {
@@ -102,7 +168,7 @@ export default function AgentTasksPage() {
     }, 30000);
 
     return () => {
-      es.removeEventListener('task-change', onTaskChange);
+      es.removeEventListener("task-change", onTaskChange);
       es.close();
       clearInterval(poll);
       clearInterval(ticker);
@@ -110,9 +176,13 @@ export default function AgentTasksPage() {
   }, []);
 
   const filteredTasks = useMemo(() => {
-    const base = ownerFilter === "all" ? tasks : tasks.filter((task) => task.ownerType === ownerFilter);
+    const base =
+      ownerFilter === "all"
+        ? tasks
+        : tasks.filter((task) => task.ownerType === ownerFilter);
     return [...base].sort((a, b) => {
-      const rw = Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
+      const rw =
+        Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
       if (rw !== 0) return rw;
       const p = weightPriority(b.priority) - weightPriority(a.priority);
       if (p !== 0) return p;
@@ -138,16 +208,28 @@ export default function AgentTasksPage() {
     const total = filteredTasks.length;
     const done = grouped.done.length;
     const inProgress = grouped["in-progress"].length;
-    const thisWeek = grouped.planning.length + grouped.backlog.length + grouped["in-progress"].length + grouped.review.length;
+    const thisWeek =
+      grouped.planning.length +
+      grouped.backlog.length +
+      grouped["in-progress"].length +
+      grouped.review.length;
     const completion = total > 0 ? Math.round((done / total) * 100) : 0;
     return { total, done, inProgress, thisWeek, completion };
   }, [filteredTasks, grouped]);
 
-  const selectedComments = selectedTask ? commentsMap[selectedTask.id] ?? [] : [];
+  const selectedComments = selectedTask
+    ? (commentsMap[selectedTask.id] ?? [])
+    : [];
 
   const moveTask = async (taskId: string, nextStatus: TaskStatus) => {
     const prev = tasks;
-    setTasks((curr) => curr.map((task) => (task.id === taskId ? { ...task, status: nextStatus, updatedAt: "just now" } : task)));
+    setTasks((curr) =>
+      curr.map((task) =>
+        task.id === taskId
+          ? { ...task, status: nextStatus, updatedAt: "just now" }
+          : task,
+      ),
+    );
     setSavingId(taskId);
 
     try {
@@ -164,11 +246,17 @@ export default function AgentTasksPage() {
 
       const data = await res.json();
       setTasks((current) =>
-        current.map((task) => (task.id === taskId ? { ...task, updatedAt: data.updatedAt ?? "just now" } : task)),
+        current.map((task) =>
+          task.id === taskId
+            ? { ...task, updatedAt: data.updatedAt ?? "just now" }
+            : task,
+        ),
       );
     } catch (err) {
       setTasks(prev);
-      setError(err instanceof Error ? err.message : "Failed to persist task status");
+      setError(
+        err instanceof Error ? err.message : "Failed to persist task status",
+      );
     } finally {
       setSavingId(null);
     }
@@ -176,18 +264,26 @@ export default function AgentTasksPage() {
 
   const updatePriority = async (taskId: string, priority: Priority) => {
     const prev = tasks;
-    setTasks((curr) => curr.map((task) => (task.id === taskId ? { ...task, priority } : task)));
+    setTasks((curr) =>
+      curr.map((task) => (task.id === taskId ? { ...task, priority } : task)),
+    );
 
     try {
       const res = await fetch("/api/control-center/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, status: tasks.find((t) => t.id === taskId)?.status ?? "planning", priority }),
+        body: JSON.stringify({
+          taskId,
+          status: tasks.find((t) => t.id === taskId)?.status ?? "planning",
+          priority,
+        }),
       });
       if (!res.ok) throw new Error(`Failed to update priority: ${res.status}`);
     } catch (err) {
       setTasks(prev);
-      setError(err instanceof Error ? err.message : "Failed to update priority");
+      setError(
+        err instanceof Error ? err.message : "Failed to update priority",
+      );
     }
   };
 
@@ -206,7 +302,7 @@ export default function AgentTasksPage() {
           detail: newTaskDetail.trim(),
           status: newTaskStatus,
           priority: newTaskPriority,
-          ownerName: "Main Agent",
+          ownerName: newTaskOwner,
           source: "manual",
         }),
       });
@@ -222,6 +318,7 @@ export default function AgentTasksPage() {
       setNewTaskDetail("");
       setNewTaskStatus("planning");
       setNewTaskPriority("medium");
+      setNewTaskOwner("Main Agent");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
     } finally {
@@ -249,11 +346,35 @@ export default function AgentTasksPage() {
       const data = await res.json();
       const comment = data?.comment as TaskComment | undefined;
       if (comment) {
-        const nextStatus = (data?.status as TaskStatus | undefined) ?? selectedTask.status;
+        const nextStatus =
+          (data?.status as TaskStatus | undefined) ?? selectedTask.status;
         const nextNeedsRework = Boolean(data?.needsRework);
-        setCommentsMap((prev) => ({ ...prev, [selectedTask.id]: [comment, ...(prev[selectedTask.id] ?? [])] }));
-        setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? { ...t, status: nextStatus, needsRework: nextNeedsRework, updatedAt: comment.createdAt } : t)));
-        setSelectedTask((prev) => (prev ? { ...prev, status: nextStatus, needsRework: nextNeedsRework, updatedAt: comment.createdAt } : prev));
+        setCommentsMap((prev) => ({
+          ...prev,
+          [selectedTask.id]: [comment, ...(prev[selectedTask.id] ?? [])],
+        }));
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === selectedTask.id
+              ? {
+                  ...t,
+                  status: nextStatus,
+                  needsRework: nextNeedsRework,
+                  updatedAt: comment.createdAt,
+                }
+              : t,
+          ),
+        );
+        setSelectedTask((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: nextStatus,
+                needsRework: nextNeedsRework,
+                updatedAt: comment.createdAt,
+              }
+            : prev,
+        );
         setNewComment("");
       }
     } catch (err) {
@@ -268,7 +389,9 @@ export default function AgentTasksPage() {
       return;
     }
 
-    const confirmed = window.confirm("Hapus task ini dari Kanban? Task akan hilang dari antrian cron juga.");
+    const confirmed = window.confirm(
+      "Hapus task ini dari Kanban? Task akan hilang dari antrian cron juga.",
+    );
     if (!confirmed) return;
 
     try {
@@ -299,16 +422,20 @@ export default function AgentTasksPage() {
   };
 
   return (
-    <main className="flex h-full w-full flex-col gap-[10px] overflow-hidden">
+    <main className="flex h-full w-full flex-col gap-[10px] overflow-hidden p-6">
       <div className="flex flex-col gap-1 mb-2">
-        <h1 className="text-2xl font-manrope font-medium text-white">Agent Tasks</h1>
+        <h1 className="text-2xl font-manrope font-medium text-white">
+          Agent Tasks
+        </h1>
         <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
           Manajemen antrian task untuk Agent
         </p>
       </div>
       <div className="flex w-full shrink-0 flex-col items-start overflow-hidden rounded-[14px] border border-white/10 bg-[#151618] p-1">
         <div className="flex w-full shrink-0 items-center justify-between px-4 py-[10px]">
-          <h1 className="font-manrope text-base font-normal capitalize text-white">Tasks Status</h1>
+          <h1 className="font-manrope text-base font-normal capitalize text-white">
+            Tasks Status
+          </h1>
           <div className="flex shrink-0 items-center gap-[10px]">
             <div className="relative">
               <select
@@ -321,7 +448,18 @@ export default function AgentTasksPage() {
                 <option value="sub-agent">Sub-Agent</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
               </div>
             </div>
             <button
@@ -334,35 +472,69 @@ export default function AgentTasksPage() {
               onClick={() => void fetchTasks()}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-[#111214] text-white/70 transition duration-200 hover:bg-white/5"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21v-5h5" /></svg>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 21v-5h5" />
+              </svg>
             </button>
           </div>
         </div>
 
         <div className="flex w-full shrink-0 flex-wrap items-center gap-6 rounded-[10px] bg-[#111214] p-4 text-white lg:flex-nowrap lg:gap-[25px]">
           <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
-            <p className="font-manrope text-[10px] text-white/50">Active Queue</p>
-            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">{String(summary.thisWeek).padStart(2, '0')}</p>
+            <p className="font-manrope text-[10px] text-white/50">
+              Active Queue
+            </p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">
+              {String(summary.thisWeek).padStart(2, "0")}
+            </p>
           </div>
           <div className="hidden h-14 w-px bg-white/10 lg:block" />
           <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
-            <p className="font-manrope text-[10px] text-white/50">In Progress</p>
-            <p className="font-ibm-plex-mono text-[26px] text-[#00a6f4]">{String(summary.inProgress).padStart(2, '0')}</p>
+            <p className="font-manrope text-[10px] text-white/50">
+              In Progress
+            </p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00a6f4]">
+              {String(summary.inProgress).padStart(2, "0")}
+            </p>
           </div>
           <div className="hidden h-14 w-px bg-white/10 lg:block" />
           <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
-            <p className="font-manrope text-[10px] text-white/50">Total Tasks</p>
-            <p className="font-ibm-plex-mono text-[26px] text-white">{String(summary.total).padStart(2, '0')}</p>
+            <p className="font-manrope text-[10px] text-white/50">
+              Total Tasks
+            </p>
+            <p className="font-ibm-plex-mono text-[26px] text-white">
+              {String(summary.total).padStart(2, "0")}
+            </p>
           </div>
           <div className="hidden h-14 w-px bg-white/10 lg:block" />
           <div className="flex min-w-[120px] flex-col justify-center whitespace-nowrap lg:flex-1">
-            <p className="font-manrope text-[10px] text-white/50">Completion Tasks</p>
-            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">{summary.completion}%</p>
+            <p className="font-manrope text-[10px] text-white/50">
+              Completion Tasks
+            </p>
+            <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">
+              {summary.completion}%
+            </p>
           </div>
         </div>
       </div>
 
-      {error && <div className="rounded-[14px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
+      {error && (
+        <div className="rounded-[14px] border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
 
       <div className="grid min-h-0 flex-1 w-full grid-cols-1 gap-[10px] md:grid-cols-2 xl:grid-cols-5">
         {MAIN_COLUMNS.map((column) => (
@@ -377,30 +549,41 @@ export default function AgentTasksPage() {
             className="flex h-full flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[#151618] p-1"
           >
             <div className="flex w-full shrink-0 items-center justify-between p-4">
-              <h2 className="font-manrope text-base font-normal capitalize text-white">{column.label}</h2>
-              <div className={`flex h-4 items-center justify-center rounded-[20px] px-1.5 ${column.badgeBg}`}>
-                <span className={`font-ibm-plex-mono text-[10px] uppercase leading-none ${column.badgeColor}`}>{String(grouped[column.key].length).padStart(2, '0')}</span>
+              <h2 className="font-manrope text-base font-normal capitalize text-white">
+                {column.label}
+              </h2>
+              <div
+                className={`flex h-4 items-center justify-center rounded-[20px] px-1.5 ${column.badgeBg}`}
+              >
+                <span
+                  className={`font-ibm-plex-mono text-[10px] uppercase leading-none ${column.badgeColor}`}
+                >
+                  {String(grouped[column.key].length).padStart(2, "0")}
+                </span>
               </div>
             </div>
 
-            <div className="flex w-full flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden rounded-[10px] bg-[#111214] p-1">
-              {loading ? (
-                <div className="flex w-full shrink-0 items-center justify-center py-2">
-                  <p className="font-ibm-plex-mono text-[10px] uppercase text-white/50">Loading tasks...</p>
-                </div>
-              ) : grouped[column.key].length === 0 ? (
-                <div className="flex w-full shrink-0 items-center justify-center py-2">
-                  <p className="font-ibm-plex-mono text-[10px] uppercase text-white/50">No tasks</p>
+            <div className="hide-scrollbar flex w-full flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden rounded-[10px] bg-[#111214] p-1">
+              {grouped[column.key].length === 0 ? (
+                <div className="flex w-full shrink-0 items-center justify-center py-3">
+                  <p className="font-ibm-plex-mono text-[10px] uppercase text-white/50">
+                    {loading && !hasLoadedOnce
+                      ? "Loading tasks..."
+                      : "No tasks"}
+                  </p>
                 </div>
               ) : (
                 grouped[column.key].map((task) => {
                   let bgBorderCls = "bg-[#151618] border-transparent";
                   if (task.priority === "high") {
-                    bgBorderCls = "bg-[rgba(251,44,54,0.05)] border-[rgba(251,44,54,0.15)]";
+                    bgBorderCls =
+                      "bg-[rgba(251,44,54,0.05)] border-[rgba(251,44,54,0.15)]";
                   } else if (task.priority === "medium") {
-                    bgBorderCls = "bg-[rgba(240,177,0,0.05)] border-[rgba(240,177,0,0.15)]";
+                    bgBorderCls =
+                      "bg-[rgba(240,177,0,0.05)] border-[rgba(240,177,0,0.15)]";
                   } else if (task.priority === "low") {
-                    bgBorderCls = "bg-[rgba(0,201,80,0.05)] border-[rgba(0,201,80,0.15)]";
+                    bgBorderCls =
+                      "bg-[rgba(0,201,80,0.05)] border-[rgba(0,201,80,0.15)]";
                   }
 
                   return (
@@ -410,21 +593,29 @@ export default function AgentTasksPage() {
                       onClick={() => setSelectedTask(task)}
                       onDragStart={() => setDraggingTaskId(task.id)}
                       onDragEnd={() => setDraggingTaskId(null)}
-                      className={`flex w-full cursor-grab active:cursor-grabbing flex-col gap-1 items-start justify-center rounded-lg border p-2 transition duration-200 hover:brightness-110 ${bgBorderCls}`}
+                      className={`flex w-full cursor-grab active:cursor-grabbing flex-col gap-1 items-start justify-center rounded-lg border p-3 transition duration-200 hover:brightness-110 ${bgBorderCls}`}
                     >
                       <div className="flex w-full shrink-0 items-center justify-between">
                         <div className="flex items-center gap-1 font-ibm-plex-mono text-[10px] uppercase text-white/50">
                           <span>{task.ownerName}</span>
                           <span>·</span>
-                          <span>{savingId === task.id ? "saving" : formatTaskTimestamp(task.updatedAt, clock)}</span>
+                          <span>
+                            {savingId === task.id
+                              ? "saving"
+                              : formatTaskTimestamp(task.updatedAt, clock)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           {task.needsRework && <ReworkBadge />}
                           <PriorityBadge priority={task.priority} />
                         </div>
                       </div>
-                      <p className="line-clamp-2 w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-sm font-normal text-white">{task.title}</p>
-                      <p className="w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-[10px] font-normal text-white/50 line-clamp-2">{task.detail?.replace(/\n+/g, " ") || "No detail"}</p>
+                      <p className="line-clamp-2 w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-sm font-normal text-white">
+                        {task.title}
+                      </p>
+                      <p className="w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-[10px] font-normal text-white/50 line-clamp-2">
+                        {task.detail?.replace(/\n+/g, " ") || "No detail"}
+                      </p>
                     </article>
                   );
                 })
@@ -435,103 +626,327 @@ export default function AgentTasksPage() {
       </div>
 
       {newTaskOpen && (
-        <div className="fixed inset-0 z-50">
-          <button className="absolute inset-0 bg-black/55" aria-label="close" onClick={() => setNewTaskOpen(false)} />
-          <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0b0f17] p-4 shadow-2xl">
-            <h3 className="text-lg font-semibold text-white">Create New Task</h3>
-            <div className="mt-4 space-y-3">
-              <input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Task title" className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none" />
-              <textarea value={newTaskDetail} onChange={(e) => setNewTaskDetail(e.target.value)} rows={4} placeholder="Detail / acceptance criteria" className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none" />
-              <div className="grid grid-cols-2 gap-2">
-                <select value={newTaskStatus} onChange={(e) => setNewTaskStatus(e.target.value as TaskStatus)} className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white outline-none">
-                  <option className="bg-[#121824]" value="planning">Planning</option>
-                  <option className="bg-[#121824]" value="backlog">Backlog</option>
-                  <option className="bg-[#121824]" value="in-progress">In Progress</option>
-                  <option className="bg-[#121824]" value="review">Review</option>
-                  <option className="bg-[#121824]" value="done">Done</option>
-                </select>
-                <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as Priority)} className="w-full rounded-lg border border-white/15 bg-transparent px-3 py-2 text-sm text-white outline-none">
-                  {PRIORITY_OPTIONS.map((p) => <option key={p} className="bg-[#121824]" value={p}>{p.toUpperCase()}</option>)}
-                </select>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-[10px] p-6 backdrop-blur-[5px]">
+          <button
+            className="absolute inset-0 bg-black/50"
+            aria-label="close"
+            onClick={() => setNewTaskOpen(false)}
+          />
+          <div className="relative w-full max-w-[720px] shrink-0 overflow-clip rounded-[14px] border border-white/10 bg-[#151618] p-1">
+            <div className="flex items-center p-3">
+              <p className="font-manrope text-base text-white">
+                Create New Task
+              </p>
+            </div>
+            <div className="flex flex-col gap-[10px] rounded-[10px] bg-[#111214] p-3">
+              <div className="flex flex-col gap-1">
+                <label className="font-manrope text-sm text-white">
+                  Task Title
+                </label>
+                <input
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="e.g. Sub-Agent : Implement handoff format"
+                  className="h-10 w-full rounded-lg bg-[#151618] px-4 font-manrope text-sm text-white outline-none placeholder:text-white/50"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="font-manrope text-sm text-white">
+                  Description
+                </label>
+                <textarea
+                  value={newTaskDetail}
+                  onChange={(e) => setNewTaskDetail(e.target.value)}
+                  rows={3}
+                  placeholder="Describe task..."
+                  className="h-[104px] w-full resize-none rounded-lg bg-[#151618] px-4 py-4 font-manrope text-sm text-white outline-none placeholder:text-white/50"
+                />
+              </div>
+              <div className="flex gap-[10px]">
+                <div className="flex flex-1 flex-col gap-1">
+                  <label className="font-manrope text-sm text-white">
+                    Type
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={newTaskStatus}
+                      onChange={(e) =>
+                        setNewTaskStatus(e.target.value as TaskStatus)
+                      }
+                      className="h-10 w-full appearance-none rounded-lg bg-[#151618] px-4 pr-10 font-manrope text-sm text-white outline-none"
+                    >
+                      <option className="bg-[#151618]" value="planning">Planning</option>
+                      <option className="bg-[#151618]" value="backlog">Backlog</option>
+                      <option className="bg-[#151618]" value="in-progress">In Progress</option>
+                      <option className="bg-[#151618]" value="review">Review</option>
+                      <option className="bg-[#151618]" value="done">Done</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/50">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  <label className="font-manrope text-sm text-white">
+                    Priority
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={newTaskPriority}
+                      onChange={(e) =>
+                        setNewTaskPriority(e.target.value as Priority)
+                      }
+                      className="h-10 w-full appearance-none rounded-lg bg-[#151618] px-4 pr-10 font-manrope text-sm text-white outline-none"
+                    >
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <option key={p} className="bg-[#151618]" value={p}>
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/50">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  <label className="font-manrope text-sm text-white">
+                    Agent
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={newTaskOwner}
+                      onChange={(e) => setNewTaskOwner(e.target.value)}
+                      className="h-10 w-full appearance-none rounded-lg bg-[#151618] px-4 pr-10 font-manrope text-sm text-white outline-none"
+                    >
+                      <option className="bg-[#151618]" value="Main Agent">Main Agent</option>
+                      <option className="bg-[#151618]" value="Sub-Agent">Sub-Agent</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/50">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => setNewTaskOpen(false)} className="rounded-lg border border-white/15 px-3 py-2 text-xs text-white/80 hover:bg-white/5">Cancel</button>
-              <button onClick={() => void createTask()} disabled={creatingTask} className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400 disabled:opacity-60">{creatingTask ? "Creating..." : "Create Task"}</button>
-            </div>
+          </div>
+          <div className="relative flex w-full max-w-[720px] shrink-0 gap-1 rounded-[14px] border border-white/10 bg-[#151618] p-1">
+            <button
+              onClick={() => setNewTaskOpen(false)}
+              className="flex h-[43px] flex-1 items-center justify-center rounded-[10px] bg-[#111214] font-manrope text-sm text-white transition duration-200 hover:bg-white/10"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => void createTask()}
+              disabled={creatingTask}
+              className="flex h-[43px] flex-1 items-center justify-center rounded-[10px] bg-[rgba(181,88,255,0.1)] font-manrope text-sm text-[#b558ff] transition duration-200 hover:bg-[rgba(181,88,255,0.2)] disabled:opacity-60"
+            >
+              {creatingTask ? "Creating..." : "Create Task"}
+            </button>
           </div>
         </div>
       )}
 
       {selectedTask && (
-        <div className="fixed inset-0 z-50">
-          <button className="absolute inset-0 bg-black/45" aria-label="close" onClick={() => setSelectedTask(null)} />
-          <aside className="absolute right-0 top-0 h-full w-full max-w-[50vw] min-w-[420px] border-l border-white/10 bg-[#0b0f17] p-5 shadow-2xl overflow-y-auto">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-white/50">Task Detail</p>
-                <h3 className="mt-1 text-xl font-semibold text-white">{selectedTask.title}</h3>
-              </div>
-              <div className="flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <button
+            className="absolute inset-0 bg-black/50 backdrop-blur-[5px]"
+            aria-label="close"
+            onClick={() => setSelectedTask(null)}
+          />
+          <div className="relative flex h-full w-full max-w-[780px] flex-col items-end gap-[10px] overflow-y-auto p-6">
+            {/* Header Card */}
+            <div className="w-full shrink-0 overflow-clip rounded-[14px] border border-white/10 bg-[#151618] p-1">
+              <div className="flex items-center gap-1 p-3">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="font-ibm-plex-mono text-sm uppercase text-white/70">
+                    Task Detail
+                  </p>
+                  <h3 className="font-manrope text-xl font-medium text-white">
+                    {selectedTask.title}
+                  </h3>
+                </div>
                 {selectedTask.source === "manual" && (
                   <button
-                    className="rounded-md border border-red-300/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/15 disabled:opacity-60"
+                    className="flex h-10 shrink-0 items-center justify-center rounded-lg bg-[rgba(251,44,54,0.1)] px-3 text-[#fb2c36] transition duration-200 hover:bg-[rgba(251,44,54,0.2)] disabled:opacity-60"
                     onClick={() => void deleteTask()}
                     disabled={deletingTask}
+                    title={deletingTask ? "Deleting..." : "Delete task"}
                   >
-                    {deletingTask ? "Deleting..." : "Delete"}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
                   </button>
                 )}
-                <button className="rounded-md border border-white/20 px-3 py-1 text-xs text-white/80 hover:bg-white/10" onClick={() => setSelectedTask(null)}>Close</button>
+              </div>
+              <div className="flex items-center gap-[25px] rounded-[10px] bg-[#111214] p-4">
+                <div className="flex flex-1 flex-col justify-center whitespace-nowrap">
+                  <p className="font-manrope text-xs text-white/50">Owner</p>
+                  <p className="font-ibm-plex-mono text-[26px] text-[#00c950]">
+                    {selectedTask.ownerName}
+                  </p>
+                </div>
+                <div className="h-14 w-px bg-white/10" />
+                <div className="flex flex-1 flex-col justify-center whitespace-nowrap">
+                  <p className="font-manrope text-xs text-white/50">Status</p>
+                  <p className="font-ibm-plex-mono text-[26px] capitalize text-white">
+                    {selectedTask.status}
+                    {selectedTask.needsRework && (
+                      <span className="ml-2 align-middle text-xs text-[#fb2c36]">REWORK</span>
+                    )}
+                  </p>
+                </div>
+                <div className="h-14 w-px bg-white/10" />
+                <div className="flex flex-1 flex-col justify-center whitespace-nowrap">
+                  <p className="font-manrope text-xs text-white/50">Priority</p>
+                  <button
+                    onClick={() => {
+                      const priorities: Priority[] = ["low", "medium", "high"];
+                      const idx = priorities.indexOf(selectedTask.priority);
+                      const next = priorities[(idx + 1) % 3];
+                      void updatePriority(selectedTask.id, next);
+                      setSelectedTask((prev) =>
+                        prev ? { ...prev, priority: next } : prev,
+                      );
+                    }}
+                    className={`text-left font-ibm-plex-mono text-[26px] capitalize transition hover:opacity-80 ${
+                      selectedTask.priority === "high"
+                        ? "text-[#fb2c36]"
+                        : selectedTask.priority === "medium"
+                          ? "text-[#f0b100]"
+                          : "text-[#00c950]"
+                    }`}
+                  >
+                    {selectedTask.priority}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 space-y-3 text-sm text-white/80">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                <p><span className="text-white/50">Owner:</span> {selectedTask.ownerName}</p>
-                <p><span className="text-white/50">Source:</span> {selectedTask.source ?? "-"}</p>
-                <p><span className="text-white/50">Status:</span> {selectedTask.status}</p>
-                {selectedTask.needsRework && <p><span className="text-white/50">Flag:</span> <span className="text-rose-300">Needs rework</span></p>}
-                <p><span className="text-white/50">Last Update:</span> {formatTaskTimestamp(selectedTask.updatedAt, clock)}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-white/50">Priority:</span>
-                  <select value={selectedTask.priority} onChange={(e) => void updatePriority(selectedTask.id, e.target.value as Priority)} className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-xs text-white">
-                    {PRIORITY_OPTIONS.map((p) => <option key={p} value={p} className="bg-[#121824]">{p.toUpperCase()}</option>)}
-                  </select>
+            {/* Details Card */}
+            <div className="w-full shrink-0 overflow-clip rounded-[14px] border border-white/10 bg-[#151618] p-1">
+              <div className="flex items-center p-3">
+                <p className="font-manrope text-base text-white">Details</p>
+              </div>
+              <div className="rounded-[10px] bg-[#111214] p-3">
+                <div className="font-manrope text-sm leading-relaxed text-white/50 space-y-2">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                    h1: ({node, ...props}) => <h1 className="text-2xl font-semibold text-white mt-6 mb-4" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-white mt-5 mb-3" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-base font-semibold text-white mt-4 mb-2" {...props} />,
+                    strong: ({node, ...props}) => <strong className="text-white font-semibold" {...props} />,
+                    code: ({node, ...props}) => <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-white" {...props} />,
+                    pre: ({node, ...props}) => <pre className="bg-black/30 p-3 rounded-lg overflow-x-auto my-3" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc list-outside ml-5 my-2" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-5 my-2" {...props} />,
+                    li: ({node, ...props}) => <li className="my-1" {...props} />,
+                    blockquote: ({node, ...props}) => <blockquote className="border-l-3 border-white/10 pl-3 my-3 text-white/70" {...props} />,
+                    hr: ({node, ...props}) => <hr className="border-t border-white/10 my-4" {...props} />,
+                    a: ({node, ...props}) => <a className="text-blue-400 underline" {...props} />,
+                    table: ({node, ...props}) => <table className="border-collapse w-full my-3" {...props} />,
+                    th: ({node, ...props}) => <th className="border border-white/10 px-3 py-2 text-left font-semibold text-white bg-white/5" {...props} />,
+                    td: ({node, ...props}) => <td className="border border-white/10 px-3 py-2 text-left" {...props} />,
+                  }}>
+                    {selectedTask.detail ?? "No detail"}
+                  </ReactMarkdown>
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs uppercase tracking-wider text-white/50">Detail</p>
-                <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-white/80">{selectedTask.detail ?? "No detail"}</pre>
+            {/* Review Thread / History Card */}
+            <div className="flex w-full min-h-[200px] flex-1 flex-col overflow-clip rounded-[14px] border border-white/10 bg-[#151618] p-1">
+              <div className="flex shrink-0 items-center p-3">
+                <p className="font-manrope text-base text-white">
+                  Review Thread / History
+                </p>
               </div>
-
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs uppercase tracking-wider text-white/50">Review Thread / History</p>
-                <div className="mt-2 space-y-2 max-h-[280px] overflow-auto pr-1">
-                  {selectedComments.length === 0 ? <p className="text-xs text-white/50">Belum ada komentar.</p> : selectedComments.map((comment) => (
-                    <div key={comment.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
-                      <p className="text-[11px] text-white/60">{comment.author} • {comment.authorType} • {formatTaskTimestamp(comment.createdAt, clock)}</p>
-                      <p className="mt-1 text-xs text-white/85">{comment.text}</p>
+              <div className="flex flex-1 flex-col gap-[10px] overflow-y-auto rounded-[10px] bg-[#111214] p-3">
+                {selectedComments.length === 0 ? (
+                  <p className="font-ibm-plex-mono text-xs text-white/50">
+                    No comments yet.
+                  </p>
+                ) : (
+                  selectedComments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="flex shrink-0 items-start gap-[10px]"
+                    >
+                      <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-lg bg-white/10 font-ibm-plex-mono text-lg text-white/50">
+                        {comment.author.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="flex items-center gap-[2px] overflow-hidden whitespace-nowrap font-ibm-plex-mono">
+                          <span className="text-sm text-white">
+                            {comment.author}
+                          </span>
+                          <span className="text-sm text-white/30">·</span>
+                          <span className="text-xs text-white/50">
+                            {formatTaskTimestamp(comment.createdAt, clock)}
+                          </span>
+                          {comment.authorType !== "human" && (
+                            <>
+                              <span className="text-sm text-white/30">·</span>
+                              <span className="text-xs text-white/50">
+                                {comment.authorType}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-[#151618] p-[10px]">
+                          <p className="font-manrope text-sm text-white">
+                            {comment.text}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <input value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tambah komentar review..." className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-white outline-none" />
-                  <button onClick={() => void addComment()} className="rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-400">Kirim</button>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/60">{definitions[selectedTask.status]?.description ?? "-"}</p>
+                  ))
+                )}
               </div>
             </div>
-          </aside>
+
+            {/* Message Input Card */}
+            <div className="flex w-full shrink-0 gap-1 overflow-clip rounded-[14px] border border-white/10 bg-[#151618] p-1">
+              <div className="flex flex-1 items-start rounded-[10px] bg-[#111214] p-4">
+                <input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void addComment();
+                    }
+                  }}
+                  placeholder="Type your message here..."
+                  className="w-full bg-transparent font-ibm-plex-mono text-sm text-white outline-none placeholder:text-white/40"
+                />
+              </div>
+              <button
+                onClick={() => void addComment()}
+                className="flex w-[52px] aspect-square shrink-0 items-center justify-center self-stretch rounded-[10px] bg-[rgba(0,166,244,0.1)] text-[#00a6f4] transition duration-200 hover:bg-[rgba(0,166,244,0.2)]"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m22 2-7 20-4-9-9-4z" />
+                  <path d="M22 2 11 13" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
   );
 }
+
+
 
 function formatTaskTimestamp(value: string, nowMs: number) {
   if (!value) return "-";
@@ -555,7 +970,11 @@ function formatTaskTimestamp(value: string, nowMs: number) {
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return "yesterday";
 
-  return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 function weightPriority(priority: Priority) {
@@ -566,20 +985,26 @@ function PriorityBadge({ priority }: { priority: Priority }) {
   if (priority === "high") {
     return (
       <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(251,44,54,0.1)] px-1.5">
-        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">{priority}</p>
+        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">
+          {priority}
+        </p>
       </div>
     );
   }
   if (priority === "medium") {
     return (
       <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(240,177,0,0.1)] px-1.5">
-        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#f0b100]">{priority}</p>
+        <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#f0b100]">
+          {priority}
+        </p>
       </div>
     );
   }
   return (
     <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(0,201,80,0.1)] px-1.5">
-      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#00c950]">{priority}</p>
+      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#00c950]">
+        {priority}
+      </p>
     </div>
   );
 }
@@ -587,7 +1012,9 @@ function PriorityBadge({ priority }: { priority: Priority }) {
 function ReworkBadge() {
   return (
     <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(251,44,54,0.1)] px-1.5">
-      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">REWORK</p>
+      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">
+        REWORK
+      </p>
     </div>
   );
 }

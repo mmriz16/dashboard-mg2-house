@@ -168,7 +168,9 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
 
     if (inLegendBlock) continue;
 
-    const match = line.match(/^\s*- \[(.| )\]\s+(.+)$/);
+    // Only match top-level checklist items (no leading whitespace)
+    // Skip indented sub-items by requiring line to start with "-"
+    const match = line.match(/^- \[(.| )\]\s+(.+)$/);
     if (!match) continue;
 
     const marker = match[1].trim();
@@ -189,7 +191,7 @@ function parseChecklistToTasks(markdown: string): TaskItem[] {
       ownerName: 'Main Agent',
       updatedAt: 'from checklist',
       source: 'checklist',
-      detail: `Checklist item dari docs/agent-control-tasks.md`,
+      detail: `Main task dari docs/agent-control-tasks.md`,
       priority: 'medium',
       needsRework: false,
     });

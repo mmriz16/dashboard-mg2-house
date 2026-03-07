@@ -10,8 +10,10 @@ type DailyItem = {
   preview: string;
 };
 
-const MEMORY_DIR = path.join(process.cwd(), 'memory');
-const LONG_TERM_FILE = path.join(process.cwd(), 'MEMORY.md');
+// Point to OpenClaw workspace memory (hardcoded for this deployment)
+const OPENCLAW_WORKSPACE = 'C:/Users/miftakhul.rizky/.openclaw/workspace';
+const MEMORY_DIR = `${OPENCLAW_WORKSPACE}/memory`;
+const LONG_TERM_FILE = `${OPENCLAW_WORKSPACE}/MEMORY.md`;
 
 function safePreview(content: string, max = 160) {
   const clean = content.replace(/\s+/g, ' ').trim();

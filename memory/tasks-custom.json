@@ -1,16 +1,74 @@
 {
   "tasks": [
     {
-      "id": "manual-memory-page-api-connect-20260304",
-      "title": "Memory Page: Connect to real API + add month/year dropdown UI",
+      "id": "manual-hierarchy-agent-registry-20260307",
+      "title": "Hierarchy Page: Implement Agent Registry Card Design",
       "status": "planning",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-04T15:44:00.000Z",
-      "source": "manual",
-      "detail": "Memory page UI sudah dibuat (app/(openclaw)/agent/memory/page.tsx). Todo: (1) Connect ke real API /api/control-center/memory untuk fetch daily memory files, (2) Tambah dropdown UI untuk month/year picker (sekarang baru state-nya aja), (3) Remove mock data, (4) Handle loading/error state dengan proper UI.",
+      "updatedAt": "2026-03-07T00:36:00.000Z",
+      "source": "discussion",
+      "detail": "## Agent Registry Card Design\n\n### Roles & Names\n- **Builder** → Bryan (Qwen3.5-plus, 15 min SLA)\n- **UI Guardian** → Uma (Qwen3.5-plus, 10 min SLA)\n- **QA Verifier** → Quinn (Qwen3.5-plus/glm-5, 10 min SLA)\n\n### Status Badges\n- 🟢 **ACTIVE** (Green #22C55E) - Show currentTask\n- 🟡 **IDLE** (Yellow #F0B100) - Show nextTask from queue\n- 🔴 **OFFLINE** (Red #FB2C36) - No task display\n- ⚠️ **ERROR** - ACTIVE with error badge\n\n### Task Display Logic\n- **ACTIVE**: currentTask from subagent session\n- **IDLE**: Builder → Backlog queue, UI/QA → Handoff target\n- **OFFLINE**: No task\n\n### Click Action\nSide modal with markdown detail page (like Memory page):\n- Identity, Personality, Memory, Tools\n- Current Work, Performance, History\n- Actions: Spawn/Kill/Steer/Export\n\n### Files\n- types/agent-registry.ts (new)\n- app/api/control-center/hierarchy/route.ts (new)\n- components/agent-role-card.tsx (new)\n- components/agent-instance-row.tsx (new)\n- app/(openclaw)/agent/hierarchy/page.tsx (update)\n\n### Data Sources\n- listSubagents() API\n- roles/*.md files\n- /api/control-center/tasks (Backlog queue)"
+    },
+    {
+      "id": "manual-wallpaper-native-module-20260306",
+      "title": "Implement Native Wallpaper Module for Expo Android App",
+      "status": "review",
+      "ownerType": "subagent",
+      "ownerName": "wallpaper-native-module (qwen3.5-plus)",
+      "updatedAt": "2026-03-06T11:00:00.000Z",
+      "source": "discussion",
+      "detail": "✅ IMPLEMENTATION COMPLETE. Native Android module untuk set wallpaper langsung tanpa manual intervention. Files created/modified: (1) android/app/src/main/java/expo/modules/wallpaper/WallpaperModule.kt - Kotlin native module dengan setWallpaperFromUri() + setWallpaperFromBase64(), (2) plugins/with-wallpaper-module.js - Expo config plugin, (3) hooks/useWallpaper.ts - React hook, (4) lib/wallpaper.types.ts - TypeScript types, (5) app/(tabs)/explore.tsx - UI integration dengan 'Set as Wallpaper' button, (6) app.json - plugin registration. Dependencies installed: expo-sharing, expo-file-system, react-native-view-shot. Build: npx expo prebuild --platform android --clean && cd android && .\\gradlew assembleDebug. Testing: Manual button works, auto-update pending.",
+      "priority": "high",
+      "needsRework": false,
+      "completedAt": "2026-03-06T11:00:00.000Z",
+      "tokenUsage": {
+        "promptTokens": 55000,
+        "completionTokens": 11000,
+        "totalTokens": 66000,
+        "modelBreakdown": {
+          "qwen3.5-plus": 66000
+        }
+      }
+    },
+    {
+      "id": "manual-wallpaper-auto-update-20260306",
+      "title": "Implement Auto-Update Background Service for Daily Wallpaper Change",
+      "status": "review",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-06T11:15:00.000Z",
+      "source": "discussion",
+      "detail": "✅ IMPLEMENTATION COMPLETE. Background service untuk auto-update wallpaper tiap midnight. Files: (1) lib/wallpaper-service.ts - Complete rewrite dengan TaskManager.defineTask() di module level (fix crash), expo-background-fetch scheduling (1 hour interval), date change detection, persistent storage dengan FileSystem, (2) app/(tabs)/settings.tsx - UI toggle untuk enable/disable service dengan status display. Permissions: SET_WALLPAPER, RECEIVE_BOOT_COMPLETED, WAKE_LOCK. User setup: Settings → Apps → Battery → Unrestricted. Test: Enable service di Settings tab, wait until midnight for auto-update. Note: Android manufacturer restrictions may apply (Xiaomi/Huawei aggressive battery optimization).",
+      "priority": "high",
+      "needsRework": false,
+      "completedAt": "2026-03-06T11:15:00.000Z"
+    },
+    {
+      "id": "manual-wallpaper-eas-build-setup-20260306",
+      "title": "Setup EAS Build + Shorten App Name",
+      "status": "review",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-06T11:45:00.000Z",
+      "source": "discussion",
+      "detail": "✅ SETUP COMPLETE. Changes: (1) app.json - Shortened name 'mobile-date-live-wallpaper' → 'Date Wallpaper', slug: date-wallpaper, package: com.kao.zi.datewallpaper, (2) eas.json created dengan 3 profiles: development (APK debug), preview (APK release), production (AAB Play Store). Build command: eas build -p android --profile development. Package name changed - user must uninstall old app before installing new build. Documentation: EAS_BUILD_GUIDE.md dengan complete setup instructions + troubleshooting.",
       "priority": "medium",
-      "needsRework": false
+      "needsRework": false,
+      "completedAt": "2026-03-06T11:45:00.000Z"
+    },
+    {
+      "id": "manual-memory-page-api-connect-20260304",
+      "title": "Memory Page: Connect to real API + add month/year dropdown UI",
+      "status": "review",
+      "ownerType": "main-agent",
+      "ownerName": "Main Agent",
+      "updatedAt": "2026-03-06T23:40:00.000Z",
+      "source": "manual",
+      "detail": "✅ IMPLEMENTATION COMPLETE. Memory page connected to real API /api/control-center/memory. API reads from OpenClaw workspace. Month/year filters + keyword search working. Testing: 8 daily files + MEMORY.md content.",
+      "priority": "medium",
+      "needsRework": false,
+      "completedAt": "2026-03-06T23:40:00.000Z"
     },
     {
       "id": "manual-files-page-api-connect-20260304",
@@ -75,12 +133,12 @@
     {
       "id": "manual-memory-page-filter-20260303",
       "title": "Tambahkan filter Memory page: month-year picker + keyword search",
-      "status": "planning",
+      "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-03T16:02:10.000Z",
+      "updatedAt": "2026-03-06T21:04:06.681Z",
       "source": "manual",
-      "detail": "Filter harian berdasarkan bulan+tahun (date picker) dan pencarian keyword di daftar/isi memory harian.",
+      "detail": "Filter harian berdasarkan bulan+tahun (date picker) dan pencarian keyword di daftar/isi memory harian. ? IMPLEMENTATION COMPLETE: (1) Connected to real API /api/control-center/memory, (2) Added month/year dropdown UI filters, (3) Removed mock data, (4) Added loading/error state handling. Files modified: app/(openclaw)/agent/memory/page.tsx",
       "priority": "high",
       "needsRework": false
     },

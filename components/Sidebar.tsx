@@ -269,19 +269,6 @@ function SidebarContent({ onLogout }: SidebarProps) {
                 label="Virtual Office"
                 icon={<MG2Icon name="company" size={16} className="opacity-80" />}
               />
-              <MenuItem
-                variant="secondary"
-                label="Notification"
-                badgeText="99+"
-                badgeStyle="warning"
-                icon={
-                  <MG2Icon
-                    name="notifications"
-                    size={16}
-                    className="opacity-80"
-                  />
-                }
-              />
               <Link href="/dashboard" className="w-full">
                 <MenuItem
                   variant={pathname === "/dashboard" ? "primary" : "secondary"}
@@ -307,38 +294,24 @@ function SidebarContent({ onLogout }: SidebarProps) {
               OpenClaw Agent
             </h1>
             <div className="flex flex-col gap-0.5">
-              <Link href="/agent/overview" className="w-full">
+              <Link href="/agent/hierarchy" className="w-full">
                 <MenuItem
-                  variant={pathname === "/agent/overview" ? "primary" : "secondary"}
-                  label="Overview"
-                  icon={<MG2Icon name="dashboard" size={16} className="opacity-80" />}
-                />
-              </Link>
-              <Link href="/agent/sessions" className="w-full">
-                <MenuItem
-                  variant={pathname === "/agent/sessions" ? "primary" : "secondary"}
-                  label="Sessions"
-                  icon={<MG2Icon name="company" size={16} className="opacity-80" />}
-                />
-              </Link>
-              <Link href="/agent/automations" className="w-full">
-                <MenuItem
-                  variant={pathname === "/agent/automations" ? "primary" : "secondary"}
-                  label="Automations"
-                  icon={<MG2Icon name="notifications" size={16} className="opacity-80" />}
+                  variant={pathname === "/agent/hierarchy" ? "primary" : "secondary"}
+                  label="Hierarchy"
+                  icon={<MG2Icon name="team" size={16} className="opacity-80" />}
                 />
               </Link>
               <Link href="/agent/files" className="w-full">
                 <MenuItem
                   variant={pathname === "/agent/files" ? "primary" : "secondary"}
                   label="Files"
-                  icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
+                  icon={<MG2Icon name="document" size={16} className="opacity-80" />}
                 />
               </Link>
               <Link href="/agent/tasks" className="w-full">
                 <MenuItem
                   variant={pathname === "/agent/tasks" ? "primary" : "secondary"}
-                  label="Tasks"
+                  label="Kanban Board"
                   icon={<MG2Icon name="tasks" size={16} className="opacity-80" />}
                 />
               </Link>
@@ -346,7 +319,7 @@ function SidebarContent({ onLogout }: SidebarProps) {
                 <MenuItem
                   variant={pathname === "/agent/memory" ? "primary" : "secondary"}
                   label="Memory"
-                  icon={<MG2Icon name="chats" size={16} className="opacity-80" />}
+                  icon={<MG2Icon name="profile" size={16} className="opacity-80" />}
                 />
               </Link>
             </div>

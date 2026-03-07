@@ -45,7 +45,7 @@ export const SubMenuItem: React.FC<SubMenuItemProps> = ({
   const activeStyle = 'bg-surface outline outline-border'
 
   return (
-    <div className={`w-60 pl-4 inline-flex flex-col justify-start items-start gap-2.5 ${className}`}>
+    <div className={`w-full pl-4 inline-flex flex-col justify-start items-start gap-2.5 ${className}`}>
       <div className="self-stretch border-l border-border inline-flex justify-start items-center">
         {/* Horizontal connector line */}
         <div className="w-2 h-0 outline outline-offset-[-0.50px] outline-border" />
