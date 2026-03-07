@@ -181,16 +181,8 @@ export default function AgentTasksPage() {
         ? tasks
         : tasks.filter((task) => task.ownerType === ownerFilter);
     return [...base].sort((a, b) => {
-      // 1. needsRework first (rework tasks get priority)
-      const rw =
-        Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
-      if (rw !== 0) return rw;
-      
-      // 2. Priority (high > medium > low)
-      const p = weightPriority(b.priority) - weightPriority(a.priority);
-      if (p !== 0) return p;
-      
-      // 3. Within same priority: newest first (by updatedAt timestamp)
+      // Visual sorting: newest first (by updatedAt timestamp)
+      // Note: Agent work queue uses PRIORITY order (HIGH first), not visual order
       const timeA = parseTaskTimestamp(a.updatedAt);
       const timeB = parseTaskTimestamp(b.updatedAt);
       return timeB - timeA; // Descending: newest first
@@ -614,6 +606,9 @@ export default function AgentTasksPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           {task.needsRework && <ReworkBadge />}
+                          {column.key === "backlog" && task.priority === "high" && (
+                            <NextToWorkBadge />
+                          )}
                           <PriorityBadge priority={task.priority} />
                         </div>
                       </div>
@@ -1076,6 +1071,16 @@ function ReworkBadge() {
     <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(251,44,54,0.1)] px-1.5">
       <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#fb2c36]">
         REWORK
+      </p>
+    </div>
+  );
+}
+
+function NextToWorkBadge() {
+  return (
+    <div className="flex h-4 items-center justify-center rounded-[20px] bg-[rgba(181,88,255,0.15)] px-1.5 border border-[rgba(181,88,255,0.3)]">
+      <p className="font-ibm-plex-mono text-[10px] uppercase leading-none text-[#b558ff] font-semibold">
+        NEXT
       </p>
     </div>
   );
