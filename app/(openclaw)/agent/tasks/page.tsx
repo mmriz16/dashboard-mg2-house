@@ -181,12 +181,19 @@ export default function AgentTasksPage() {
         ? tasks
         : tasks.filter((task) => task.ownerType === ownerFilter);
     return [...base].sort((a, b) => {
+      // 1. needsRework first (rework tasks get priority)
       const rw =
         Number(Boolean(b.needsRework)) - Number(Boolean(a.needsRework));
       if (rw !== 0) return rw;
+      
+      // 2. Priority (high > medium > low)
       const p = weightPriority(b.priority) - weightPriority(a.priority);
       if (p !== 0) return p;
-      return String(b.updatedAt).localeCompare(String(a.updatedAt));
+      
+      // 3. Within same priority: newest first (by updatedAt timestamp)
+      const timeA = parseTaskTimestamp(a.updatedAt);
+      const timeB = parseTaskTimestamp(b.updatedAt);
+      return timeB - timeA; // Descending: newest first
     });
   }, [tasks, ownerFilter]);
 
@@ -947,6 +954,61 @@ export default function AgentTasksPage() {
 }
 
 
+
+function parseTaskTimestamp(value: string): number {
+  if (!value) return 0;
+  const raw = value.trim().toLowerCase();
+  
+  // Handle special cases
+  if (raw === "just now" || raw === "from checklist" || raw === "live") {
+    return Date.now();
+  }
+  
+  // Handle relative time: "X min ago", "X h ago", "yesterday"
+  const minMatch = raw.match(/^(\d+)\s*min\s*ago$/);
+  if (minMatch) {
+    const mins = parseInt(minMatch[1], 10);
+    return Date.now() - mins * 60_000;
+  }
+  
+  const hourMatch = raw.match(/^(\d+)\s*h\s*ago$/);
+  if (hourMatch) {
+    const hours = parseInt(hourMatch[1], 10);
+    return Date.now() - hours * 60 * 60_000;
+  }
+  
+  if (raw === "yesterday") {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.getTime();
+  }
+  
+  // Try parsing as ISO date string
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return date.getTime();
+  }
+  
+  // Fallback: try parsing common date formats
+  // e.g., "MAR 05, 2026" or "Mar 4, 2026"
+  const dateMatch = raw.match(/^([a-z]{3})\s+(\d{1,2}),?\s+(\d{4})$/i);
+  if (dateMatch) {
+    const [, monthStr, dayStr, yearStr] = dateMatch;
+    const months: Record<string, number> = {
+      jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+      jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+    };
+    const month = months[monthStr.toLowerCase()];
+    const day = parseInt(dayStr, 10);
+    const year = parseInt(yearStr, 10);
+    if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
+      return new Date(year, month, day).getTime();
+    }
+  }
+  
+  // Last resort: return 0 (will be sorted last)
+  return 0;
+}
 
 function formatTaskTimestamp(value: string, nowMs: number) {
   if (!value) return "-";
