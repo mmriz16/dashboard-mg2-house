@@ -56,6 +56,8 @@ export interface UIHandoff {
   accessibilityPass: boolean;
   changesApplied: string[]; // List of UI changes made
   visualNotes?: string;
+  readyForQa?: boolean;
+  rejectionReason?: string;
 }
 
 // QA Verifier → Main Agent handoff
@@ -67,6 +69,7 @@ export interface QAHandoff {
   readyForUser: boolean;
   issues?: string[]; // List of issues found (if any)
   testResults?: { passed: number; failed: number; skipped: number };
+  needsRework?: boolean;
 }
 
 // Union type for any handoff
@@ -253,12 +256,18 @@ export function validateHandoff(handoff: HandoffData, fromRole: SubAgentRole): {
     if (typeof h.responsive !== "boolean") errors.push("responsive (boolean) is required");
     if (typeof h.accessibilityPass !== "boolean") errors.push("accessibilityPass (boolean) is required");
     if (!Array.isArray(h.changesApplied)) errors.push("changesApplied (array) is required");
+    if (h.rejectionReason !== undefined && typeof h.rejectionReason !== "string") {
+      errors.push("rejectionReason must be a string when provided");
+    }
   } else if (fromRole === "qa-verifier") {
     const h = handoff as QAHandoff;
     if (typeof h.scopeMatch !== "boolean") errors.push("scopeMatch (boolean) is required");
     if (typeof h.regressions !== "boolean") errors.push("regressions (boolean) is required");
     if (typeof h.edgeCasesHandled !== "boolean") errors.push("edgeCasesHandled (boolean) is required");
     if (typeof h.readyForUser !== "boolean") errors.push("readyForUser (boolean) is required");
+    if (h.needsRework !== undefined && typeof h.needsRework !== "boolean") {
+      errors.push("needsRework must be a boolean when provided");
+    }
   }
 
   return { valid: errors.length === 0, errors };
@@ -289,16 +298,20 @@ export function createHandoffComment(
     if (h.uiNote) summary += `\n**Note for UI Guardian:** ${h.uiNote}\n`;
   } else if (fromRole === "ui-guardian") {
     const h = handoff as UIHandoff;
+    const rejected = h.readyForQa === false || Boolean(h.rejectionReason);
     summary += `\n- Design Compliant: ${h.designCompliant ? "✅" : "❌"}\n`;
     summary += `- Responsive: ${h.responsive ? "✅" : "❌"}\n`;
     summary += `- Accessibility: ${h.accessibilityPass ? "✅" : "❌"}\n`;
+    summary += `- Ready for QA: ${rejected ? "❌ Rejected" : "✅ YES"}\n`;
     if (h.visualNotes) summary += `\n**Visual Notes:** ${h.visualNotes}\n`;
+    if (h.rejectionReason) summary += `\n**Rejection Reason:** ${h.rejectionReason}\n`;
   } else if (fromRole === "qa-verifier") {
     const h = handoff as QAHandoff;
     summary += `\n- Scope Match: ${h.scopeMatch ? "✅" : "❌"}\n`;
     summary += `- Regressions: ${h.regressions ? "⚠️ Found" : "✅ None"}\n`;
     summary += `- Edge Cases: ${h.edgeCasesHandled ? "✅ Handled" : "⚠️ Pending"}\n`;
     summary += `- Ready for User: ${h.readyForUser ? "✅ YES" : "❌ NO"}\n`;
+    if (h.needsRework) summary += `- Needs Rework: ⚠️ YES\n`;
     if (h.issues && h.issues.length > 0) {
       summary += `\n**Issues Found:**\n${h.issues.map((i) => `- ${i}`).join("\n")}\n`;
     }
@@ -311,14 +324,18 @@ export function createHandoffComment(
  * Determine next status based on handoff result.
  */
 export function getNextStatus(fromRole: SubAgentRole, handoff: HandoffData): "in-progress" | "review" | "backlog" {
-  // If QA says ready for user, move to review
+  // If QA says ready for user, move to review. Otherwise bounce to backlog for rework.
   if (fromRole === "qa-verifier") {
     const h = handoff as QAHandoff;
-    return h.readyForUser ? "review" : "backlog";
+    return h.readyForUser && !h.regressions ? "review" : "backlog";
   }
 
-  // If UI Guardian completes, hand off to QA
+  // UI Guardian can reject a builder handoff and send it back to backlog.
   if (fromRole === "ui-guardian") {
+    const h = handoff as UIHandoff;
+    if (h.readyForQa === false || Boolean(h.rejectionReason)) {
+      return "backlog";
+    }
     return "in-progress"; // QA will pick it up
   }
 
@@ -364,7 +381,8 @@ export function createHandoffTemplate(role: SubAgentRole): string {
   "designCompliant": true,
   "responsive": true,
   "accessibilityPass": true,
-  "changesApplied": ["Updated color tokens", "Added responsive breakpoints"]
+  "changesApplied": ["Updated color tokens", "Added responsive breakpoints"],
+  "readyForQa": true
 }`;
   } else {
     return `{
@@ -372,7 +390,8 @@ export function createHandoffTemplate(role: SubAgentRole): string {
   "scopeMatch": true,
   "regressions": false,
   "edgeCasesHandled": true,
-  "readyForUser": true
+  "readyForUser": true,
+  "needsRework": false
 }`;
   }
 }
@@ -381,40 +400,93 @@ export function createHandoffTemplate(role: SubAgentRole): string {
  * Update task status based on sub-agent handoff.
  * This should be called after a sub-agent completes.
  */
+function resolveTaskBoardUrl() {
+  const explicitBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL;
+
+  const normalizedBaseUrl = explicitBaseUrl?.replace(/\/$/, "") || "http://127.0.0.1:3000";
+  return `${normalizedBaseUrl}/api/control-center/tasks`;
+}
+
+async function patchTaskBoard(body: Record<string, unknown>, retryCount = 1): Promise<void> {
+  let attempt = 0;
+  let lastError: string | null = null;
+  const taskBoardUrl = resolveTaskBoardUrl();
+
+  while (attempt <= retryCount) {
+    try {
+      const response = await fetch(taskBoardUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        lastError = `HTTP ${response.status}: ${text || response.statusText}`;
+        if (response.status < 500 && response.status !== 429) {
+          throw new Error(lastError);
+        }
+      } else {
+        return;
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown error";
+    }
+
+    if (attempt >= retryCount) break;
+    const backoffMs = 400 * Math.pow(2, attempt);
+    await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    attempt += 1;
+  }
+
+  throw new Error(lastError ?? "Failed to patch task board");
+}
+
 export async function updateTaskFromHandoff(
   taskId: string,
   fromRole: SubAgentRole,
   handoff: HandoffData,
 ): Promise<{ success: boolean; newStatus?: string; error?: string }> {
   try {
-    // Validate handoff
     const validation = validateHandoff(handoff, fromRole);
     if (!validation.valid) {
       return { success: false, error: `Invalid handoff: ${validation.errors.join(", ")}` };
     }
 
-    // Create comment for task history
     const commentText = createHandoffComment(taskId, fromRole, handoff);
+    const author = fromRole === "builder" ? "Builder Sub-Agent" : fromRole === "ui-guardian" ? "UI Guardian" : "QA Verifier";
+    const newStatus = getNextStatus(fromRole, handoff);
+    const needsRework = newStatus === "backlog";
 
-    // POST to /api/control-center/tasks with add-comment action
-    const response = await fetch("http://localhost:3000/api/control-center/tasks", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "add-comment",
-        taskId,
-        text: commentText,
-        author: fromRole === "builder" ? "Builder Sub-Agent" : fromRole === "ui-guardian" ? "UI Guardian" : "QA Verifier",
-        authorType: "sub-agent",
-      }),
+    await patchTaskBoard({
+      action: "add-comment",
+      taskId,
+      text: commentText,
+      author,
+      authorType: "sub-agent",
+      taskStatus: newStatus,
     });
 
-    if (!response.ok) {
-      return { success: false, error: `Failed to add comment: ${response.statusText}` };
+    await patchTaskBoard({
+      taskId,
+      status: newStatus,
+    });
+
+    if (needsRework) {
+      await patchTaskBoard({
+        action: "add-comment",
+        taskId,
+        text: `Rework requested by ${author}. Task moved back to backlog for follow-up.`,
+        author: "System",
+        authorType: "main-agent",
+        taskStatus: newStatus,
+      });
     }
 
-    // Determine and return new status
-    const newStatus = getNextStatus(fromRole, handoff);
     return { success: true, newStatus };
   } catch (error) {
     return {

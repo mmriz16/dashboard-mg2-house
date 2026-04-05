@@ -1,37 +1,13 @@
 {
   "tasks": [
     {
-      "id": "manual-task-priority-order-20260404",
-      "title": "Kanban API: Fix backlog prioritization to use oldest updatedAt last tie-breaker",
-      "detail": "## Summary\nFix `/api/control-center/tasks` queue candidate sorting so it follows the operational rule exactly: `needsRework` first, then high priority, then oldest `updatedAt`.\n\n## Requirements\n- Keep `needsRework` items at the top\n- Keep priority ordering descending (`high` > `medium` > `low`)\n- Use oldest valid `updatedAt` as the final tiebreaker\n- Handle non-date placeholders safely so malformed values do not jump the queue\n\n## Checklist\n- [x] Confirm current fallback merged board state\n- [x] Identify incorrect `updatedAt` sort direction in route handler\n- [x] Implement safe oldest-first date comparison\n- [ ] User review & approval",
-      "status": "review",
-      "ownerType": "main-agent",
-      "ownerName": "Main Agent",
-      "updatedAt": "2026-04-04T21:00:00+07:00",
-      "source": "manual",
-      "priority": "high",
-      "needsRework": false
-    },
-    {
-      "id": "manual-taskboard-url-fix-20260402",
-      "title": "Sub-Agent Pipeline: Remove hardcoded localhost:3000 task-board patch URL",
-      "detail": "## Summary\nFix sub-agent handoff persistence so task-board PATCH requests stop assuming `http://localhost:3000`.\n\n## Requirements\n- Resolve task-board base URL from runtime config instead of hardcoding localhost:3000\n- Keep existing retry/backoff behavior intact\n- Preserve PATCH payload behavior for comments and status updates\n\n## Checklist\n- [x] Identify hardcoded task-board URL in sub-agent handoff flow\n- [x] Replace it with env-aware base URL resolution\n- [x] Keep fallback for local dev\n- [ ] User review & approval",
-      "status": "review",
-      "ownerType": "main-agent",
-      "ownerName": "Main Agent",
-      "updatedAt": "2026-04-02T21:00:00+07:00",
-      "source": "manual",
-      "priority": "high",
-      "needsRework": false
-    },
-    {
       "id": "manual-modular-tileset-20260308",
       "title": "Modular Tileset System for Agent Rooms",
-      "detail": "## Summary\nImplementasi modular tile-based room rendering system untuk Agent Control Center dashboard dengan sci-fi/office theme.\n\n## Requirements\n- Modular tiles (floor, wall, furniture) ~15-20 tiles dalam 256x256px sprite sheet\n- 4 agent rooms: Builder Lab, QA Station, UI Studio, Command Center\n- Auto-generate collision grid dari tile types\n- Pathfinding visualization support\n- CC0/public domain assets only (safe for production)\n\n## Decisions Made\n- Modular tiles > full room images (flexible, lightweight, dynamic)\n- Tile size: 32x32px\n- Theme: Sci-fi/office\n- Performance target: <100ms render time\n\n## Checklist\n- [x] Search & download free CC0 modular tileset (sci-fi/office theme)\n- [x] Create sprite sheet with floor, wall, furniture tiles (~15-20 tiles)\n- [x] Design room layouts: Builder Lab, QA Station, UI Studio, Command Center\n- [x] Generate tilemap JSON config untuk setiap room\n- [x] Implement collision grid auto-generation dari tile types\n- [x] Integrate tile renderer ke dashboard\n- [x] Test pathfinding visualization on tilemap\n- [ ] User review & approval",
+      "detail": "## Summary\nImplementasi modular tile-based room rendering system untuk Agent Control Center dashboard dengan sci-fi/office theme.\n\n## Requirements\n- Modular tiles (floor, wall, furniture) ~15-20 tiles dalam 256x256px sprite sheet\n- 4 agent rooms: Builder Lab, QA Station, UI Studio, Command Center\n- Auto-generate collision grid dari tile types\n- Pathfinding visualization support\n- CC0/public domain assets only (safe for production)\n\n## Decisions Made\n- Modular tiles > full room images (flexible, lightweight, dynamic)\n- Tile size: 32x32px\n- Theme: Sci-fi/office\n- Performance target: <100ms render time\n\n## Checklist\n- [x] Search & download free CC0 modular tileset (sci-fi/office theme)\n- [x] Create sprite sheet with floor, wall, furniture tiles (~15-20 tiles)\n- [ ] Design room layouts: Builder Lab, QA Station, UI Studio, Command Center\n- [ ] Generate tilemap JSON config untuk setiap room\n- [ ] Implement collision grid auto-generation dari tile types\n- [ ] Integrate tile renderer ke dashboard\n- [ ] Test pathfinding visualization on tilemap\n- [ ] User review & approval",
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-16T21:00:00+07:00",
+      "updatedAt": "2026-03-15T21:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -40,10 +16,10 @@
       "id": "manual-hierarchy-page-20260307",
       "title": "Hierarchy Page: Implement Agent Registry Card Design",
       "detail": "## Summary\nImplement Agent Registry Card design untuk Hierarchy page di Agent Control Center.\n\n## Requirements\n- Card-based layout untuk agent registry\n- Display agent info, status, capabilities\n- Consistent dengan design system (Manrope + IBM Plex Mono)\n\n## Checklist\n- [ ] Design card component\n- [ ] Implement layout\n- [ ] Connect to agent registry API\n- [ ] User review",
-      "status": "backlog",
+      "status": "planning",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-07T00:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -52,10 +28,10 @@
       "id": "manual-bailian-webhook-20260305",
       "title": "Bailian Token Usage Webhook Server for Auto-Logging",
       "detail": "## Summary\nSetup webhook server untuk automatically log Bailian token usage dari OpenClaw completions ke dashboard.\n\n## Requirements\n- Track request count (18K/month quota)\n- Track token usage per model\n- Real-time dashboard update\n- Auto-cleanup old entries\n\n## Decisions Made\n- Use webhook server (port 8765) instead of manual logging\n- Store in memory/bailian-token-usage.json\n- Dashboard polls every 30s\n\n## Checklist\n- [x] Install node-fetch dependency\n- [x] Test webhook server locally\n- [x] Configure OpenClaw to POST to webhook\n- [x] Verify dashboard updates in real-time\n- [x] Add error handling + retry logic",
-      "status": "review",
+      "status": "planning",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-05T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -67,7 +43,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-11T21:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -79,7 +55,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-12T21:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -91,7 +67,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-10T11:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -103,7 +79,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-07T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -115,7 +91,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-07T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -127,7 +103,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-06T00:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -139,7 +115,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-06T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -151,7 +127,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-05T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false
@@ -163,7 +139,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-06T00:00:00+07:00",
       "source": "discussion",
       "priority": "medium",
       "needsRework": false
@@ -175,7 +151,7 @@
       "status": "review",
       "ownerType": "main-agent",
       "ownerName": "Main Agent",
-      "updatedAt": "2026-03-14T17:05:00+07:00",
+      "updatedAt": "2026-03-08T00:00:00+07:00",
       "source": "discussion",
       "priority": "high",
       "needsRework": false

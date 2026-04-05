@@ -23,6 +23,7 @@ export default function AgentMemoryPage() {
   const [daily, setDaily] = useState<DailyItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [selectedContent, setSelectedContent] = useState<string>("");
+  const [contentLoading, setContentLoading] = useState(false);
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterKeyword, setFilterKeyword] = useState<string>("");
@@ -52,13 +53,18 @@ export default function AgentMemoryPage() {
   useEffect(() => {
     async function fetchFileContent() {
       if (!selectedFile) return;
+      setContentLoading(true);
       try {
         const res = await fetch(`/api/control-center/memory?file=${selectedFile}`);
         if (!res.ok) throw new Error("Failed to fetch file content");
         const data = await res.json();
         setSelectedContent(data.content);
-      } catch {
-        setSelectedContent("Failed to load content");
+        setError(null);
+      } catch (e) {
+        setSelectedContent("");
+        setError(e instanceof Error ? e.message : "Failed to load content");
+      } finally {
+        setContentLoading(false);
       }
     }
     fetchFileContent();
@@ -294,10 +300,14 @@ export default function AgentMemoryPage() {
               <div className="flex flex-1 flex-col overflow-y-auto w-full gap-2.5 rounded-[8px] bg-surface-card p-3">
                 <div className="flex flex-col gap-1">
                   {selectedFile ? (
-                    loading ? (
+                    contentLoading ? (
                       <p className="font-manrope text-[12px] font-normal text-muted">
                         Loading content...
                       </p>
+                    ) : error && !selectedContent ? (
+                      <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-rose-200">
+                        {error}
+                      </div>
                     ) : (
                       <>
                         <h3 className="font-manrope text-[14px] font-normal leading-[normal] text-white">

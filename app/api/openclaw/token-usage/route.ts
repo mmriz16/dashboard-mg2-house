@@ -75,13 +75,11 @@ async function readUsageFile(): Promise<TokenUsageStorage> {
   try {
     const content = await fs.readFile(USAGE_FILE_PATH, "utf-8");
     const parsed = JSON.parse(content);
-    // Ensure requestCounts array exists (migration from old format)
     if (!parsed.requestCounts) {
       parsed.requestCounts = [];
     }
     return parsed;
   } catch {
-    // Return default empty structure if file doesn't exist
     return {
       entries: [],
       requestCounts: [],
@@ -114,46 +112,142 @@ interface TimeSeriesResult {
   models: ModelTokenUsage[];
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function normalizeTokenUsagePayload(body: unknown): {
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  requestId?: string;
+} | null {
+  if (!body || typeof body !== "object") return null;
+
+  const payload = body as Record<string, unknown>;
+  const usage = payload.usage && typeof payload.usage === "object"
+    ? (payload.usage as Record<string, unknown>)
+    : null;
+  const tokenUsage = payload.tokenUsage && typeof payload.tokenUsage === "object"
+    ? (payload.tokenUsage as Record<string, unknown>)
+    : null;
+  const metrics = payload.metrics && typeof payload.metrics === "object"
+    ? (payload.metrics as Record<string, unknown>)
+    : null;
+
+  const model = [
+    payload.model,
+    payload.modelName,
+    payload.model_name,
+    usage?.model,
+    tokenUsage?.model,
+    metrics?.model,
+  ].find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+
+  if (!model) return null;
+
+  const promptTokens =
+    toFiniteNumber(payload.promptTokens) ??
+    toFiniteNumber(payload.prompt_tokens) ??
+    toFiniteNumber(usage?.promptTokens) ??
+    toFiniteNumber(usage?.prompt_tokens) ??
+    toFiniteNumber(tokenUsage?.promptTokens) ??
+    toFiniteNumber(tokenUsage?.prompt_tokens) ??
+    0;
+
+  const completionTokens =
+    toFiniteNumber(payload.completionTokens) ??
+    toFiniteNumber(payload.completion_tokens) ??
+    toFiniteNumber(payload.outputTokens) ??
+    toFiniteNumber(payload.output_tokens) ??
+    toFiniteNumber(usage?.completionTokens) ??
+    toFiniteNumber(usage?.completion_tokens) ??
+    toFiniteNumber(usage?.outputTokens) ??
+    toFiniteNumber(usage?.output_tokens) ??
+    toFiniteNumber(tokenUsage?.completionTokens) ??
+    toFiniteNumber(tokenUsage?.completion_tokens) ??
+    0;
+
+  const totalTokens =
+    toFiniteNumber(payload.totalTokens) ??
+    toFiniteNumber(payload.total_tokens) ??
+    toFiniteNumber(payload.tokens) ??
+    toFiniteNumber(usage?.totalTokens) ??
+    toFiniteNumber(usage?.total_tokens) ??
+    toFiniteNumber(usage?.tokens) ??
+    toFiniteNumber(tokenUsage?.totalTokens) ??
+    toFiniteNumber(tokenUsage?.total_tokens) ??
+    toFiniteNumber(tokenUsage?.tokens) ??
+    (() => {
+      const derived = promptTokens + completionTokens;
+      return derived > 0 ? derived : null;
+    })();
+
+  if (totalTokens === null) return null;
+
+  const requestId = [
+    payload.requestId,
+    payload.request_id,
+    payload.id,
+    usage?.requestId,
+    usage?.request_id,
+    tokenUsage?.requestId,
+    tokenUsage?.request_id,
+    metrics?.requestId,
+    metrics?.request_id,
+  ].find((value): value is string => typeof value === "string" && value.trim().length > 0)?.trim();
+
+  return {
+    model,
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    requestId,
+  };
+}
+
 function calculateTimeSeriesData(
   entries: TokenUsageEntry[],
   requestCounts: RequestCountEntry[]
 ): TimeSeriesResult {
   const now = new Date();
   const nowTime = now.getTime();
-  
+
   const fiveHoursCutoff = nowTime - MS_IN_5_HOURS;
   const dailyCutoff = nowTime - MS_IN_DAY;
   const weeklyCutoff = nowTime - MS_IN_WEEK;
   const monthlyCutoff = nowTime - MS_IN_MONTH;
-  
-  // Token calculations
+
   let fiveHoursTokens = 0;
   let dailyTokens = 0;
   let weeklyTokens = 0;
   let monthlyTokens = 0;
   let totalTokens = 0;
-  
-  // Request count calculations
+
   let fiveHoursRequests = 0;
   let dailyRequests = 0;
   let weeklyRequests = 0;
   let monthlyRequests = 0;
   let totalRequests = 0;
-  
+
   const modelMap = new Map<string, ModelTokenUsage>();
-  
-  // Process token entries
+
   for (const entry of entries) {
     const entryTime = new Date(entry.timestamp).getTime();
     const tokens = entry.totalTokens;
-    
+
     totalTokens += tokens;
     if (entryTime >= monthlyCutoff) monthlyTokens += tokens;
     if (entryTime >= weeklyCutoff) weeklyTokens += tokens;
     if (entryTime >= dailyCutoff) dailyTokens += tokens;
     if (entryTime >= fiveHoursCutoff) fiveHoursTokens += tokens;
-    
-    // Model aggregation
+
     let modelStats = modelMap.get(entry.model);
     if (!modelStats) {
       modelStats = {
@@ -166,28 +260,27 @@ function calculateTimeSeriesData(
       };
       modelMap.set(entry.model, modelStats);
     }
-    
+
     modelStats.promptTokens += entry.promptTokens || 0;
     modelStats.completionTokens += entry.completionTokens || 0;
     modelStats.totalTokens += tokens;
     modelStats.requests += 1;
-    
+
     if (!modelStats.lastUsed || entryTime > new Date(modelStats.lastUsed).getTime()) {
       modelStats.lastUsed = entry.timestamp;
     }
   }
-  
-  // Process request count entries (separate from token entries)
+
   for (const req of requestCounts) {
     const entryTime = new Date(req.timestamp).getTime();
-    
+
     totalRequests += 1;
     if (entryTime >= monthlyCutoff) monthlyRequests += 1;
     if (entryTime >= weeklyCutoff) weeklyRequests += 1;
     if (entryTime >= dailyCutoff) dailyRequests += 1;
     if (entryTime >= fiveHoursCutoff) fiveHoursRequests += 1;
   }
-  
+
   return {
     tokens: {
       total: totalTokens,
@@ -207,7 +300,7 @@ function calculateTimeSeriesData(
   };
 }
 
-function cleanupOldEntries(entries: TokenUsageEntry[]): TokenUsageEntry[] {
+function cleanupOldEntries<T extends { timestamp: string }>(entries: T[]): T[] {
   const cutoff = Date.now() - MS_IN_90_DAYS;
   return entries.filter((entry) => {
     const entryTime = new Date(entry.timestamp).getTime();
@@ -215,12 +308,42 @@ function cleanupOldEntries(entries: TokenUsageEntry[]): TokenUsageEntry[] {
   });
 }
 
-// GET - Fetch current token usage
+function hasRequestIdConflict(storage: TokenUsageStorage, requestId: string): boolean {
+  return storage.entries.some((entry) => entry.requestId === requestId)
+    || storage.requestCounts.some((entry) => entry.requestId === requestId);
+}
+
+function buildUsageResponse(storage: TokenUsageStorage) {
+  const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
+  const requestQuota = {
+    total: QUOTA_CONFIG.requests.total,
+    used: usage.requests.monthly,
+    remaining: Math.max(0, QUOTA_CONFIG.requests.total - usage.requests.monthly),
+    expiresAt: QUOTA_CONFIG.requests.expiresAt,
+  };
+
+  return {
+    tokens: usage.tokens,
+    requests: usage.requests,
+    models: usage.models,
+    quota: {
+      tokens: {
+        total: QUOTA_CONFIG.tokens.total,
+        used: usage.tokens.monthly,
+        remaining: Math.max(0, QUOTA_CONFIG.tokens.total - usage.tokens.monthly),
+        expiresAt: QUOTA_CONFIG.tokens.expiresAt,
+      },
+      requests: requestQuota,
+    },
+    lastUpdated: storage.lastUpdated,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
+    void request;
     const storage = await readUsageFile();
-    
-    // Cleanup old entries (>90 days)
+
     const cleanedEntries = cleanupOldEntries(storage.entries);
     const cleanedRequests = cleanupOldEntries(storage.requestCounts);
     if (cleanedEntries.length !== storage.entries.length || cleanedRequests.length !== storage.requestCounts.length) {
@@ -228,33 +351,8 @@ export async function GET(request: NextRequest) {
       storage.requestCounts = cleanedRequests;
       await writeUsageFile(storage);
     }
-    
-    // Calculate time-series data
-    const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
-    
-    // Calculate request quota (using monthly requests as the main limit)
-    const requestQuota = {
-      total: QUOTA_CONFIG.requests.total,
-      used: usage.requests.monthly,
-      remaining: Math.max(0, QUOTA_CONFIG.requests.total - usage.requests.monthly),
-      expiresAt: QUOTA_CONFIG.requests.expiresAt,
-    };
 
-    return NextResponse.json({
-      tokens: usage.tokens,
-      requests: usage.requests,
-      models: usage.models,
-      quota: {
-        tokens: {
-          total: QUOTA_CONFIG.tokens.total,
-          used: usage.tokens.monthly,
-          remaining: Math.max(0, QUOTA_CONFIG.tokens.total - usage.tokens.monthly),
-          expiresAt: QUOTA_CONFIG.tokens.expiresAt,
-        },
-        requests: requestQuota,
-      },
-      lastUpdated: storage.lastUpdated,
-    });
+    return NextResponse.json(buildUsageResponse(storage));
   } catch (error) {
     console.error("Error reading token usage:", error);
     return NextResponse.json(
@@ -264,76 +362,56 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Log new token usage + request count
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { model, promptTokens, completionTokens, totalTokens, requestId } = body;
+    const normalized = normalizeTokenUsagePayload(body);
 
-    if (!model || typeof totalTokens !== "number") {
+    if (!normalized) {
       return NextResponse.json(
-        { error: "Missing required fields: model, totalTokens" },
+        { error: "Missing required fields: model + token totals (totalTokens or prompt/completion tokens)" },
         { status: 400 }
       );
     }
 
     const storage = await readUsageFile();
-    const now = new Date();
+    const now = new Date().toISOString();
 
-    // Create token entry
+    if (normalized.requestId && hasRequestIdConflict(storage, normalized.requestId)) {
+      return NextResponse.json({
+        ok: true,
+        deduped: true,
+        usage: buildUsageResponse(storage),
+      });
+    }
+
     const newEntry: TokenUsageEntry = {
-      model,
-      promptTokens: promptTokens || 0,
-      completionTokens: completionTokens || 0,
-      totalTokens,
-      timestamp: now.toISOString(),
-      requestId,
+      model: normalized.model,
+      promptTokens: normalized.promptTokens,
+      completionTokens: normalized.completionTokens,
+      totalTokens: normalized.totalTokens,
+      timestamp: now,
+      requestId: normalized.requestId,
     };
 
-    // Create request count entry (1 request = 1 API call)
     const newRequestEntry: RequestCountEntry = {
-      model,
-      timestamp: now.toISOString(),
-      requestId,
+      model: normalized.model,
+      timestamp: now,
+      requestId: normalized.requestId,
     };
 
-    // Add entries to storage
     storage.entries.push(newEntry);
     storage.requestCounts.push(newRequestEntry);
-    storage.lastUpdated = now.toISOString();
-
-    // Cleanup old entries (>90 days) to prevent file bloat
+    storage.lastUpdated = now;
     storage.entries = cleanupOldEntries(storage.entries);
     storage.requestCounts = cleanupOldEntries(storage.requestCounts);
 
     await writeUsageFile(storage);
 
-    // Calculate and return current usage stats
-    const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
-    const requestQuota = {
-      total: QUOTA_CONFIG.requests.total,
-      used: usage.requests.monthly,
-      remaining: Math.max(0, QUOTA_CONFIG.requests.total - usage.requests.monthly),
-      expiresAt: QUOTA_CONFIG.requests.expiresAt,
-    };
-
-    return NextResponse.json({ 
-      ok: true, 
-      usage: {
-        tokens: usage.tokens,
-        requests: usage.requests,
-        models: usage.models,
-        quota: {
-          tokens: {
-            total: QUOTA_CONFIG.tokens.total,
-            used: usage.tokens.monthly,
-            remaining: Math.max(0, QUOTA_CONFIG.tokens.total - usage.tokens.monthly),
-            expiresAt: QUOTA_CONFIG.tokens.expiresAt,
-          },
-          requests: requestQuota,
-        },
-        lastUpdated: storage.lastUpdated,
-      },
+    return NextResponse.json({
+      ok: true,
+      deduped: false,
+      usage: buildUsageResponse(storage),
       entry: newEntry,
     });
   } catch (error) {
@@ -345,7 +423,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Reset usage (admin only)
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
@@ -358,65 +435,28 @@ export async function PATCH(request: NextRequest) {
       storage.requestCounts = [];
       storage.lastUpdated = new Date().toISOString();
       await writeUsageFile(storage);
-      
-      const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
-      return NextResponse.json({ 
-        ok: true, 
-        usage: { 
-          tokens: usage.tokens,
-          requests: usage.requests,
-          models: usage.models,
-          quota: {
-            tokens: {
-              total: QUOTA_CONFIG.tokens.total,
-              used: 0,
-              remaining: QUOTA_CONFIG.tokens.total,
-              expiresAt: QUOTA_CONFIG.tokens.expiresAt,
-            },
-            requests: {
-              total: QUOTA_CONFIG.requests.total,
-              used: 0,
-              remaining: QUOTA_CONFIG.requests.total,
-              expiresAt: QUOTA_CONFIG.requests.expiresAt,
-            },
-          },
-          lastUpdated: storage.lastUpdated,
-        },
-      });
+
+      return NextResponse.json({ ok: true, usage: buildUsageResponse(storage) });
     }
 
     if (reset === "daily") {
       const dailyCutoff = Date.now() - MS_IN_DAY;
-      storage.entries = storage.entries.filter((entry) => {
-        const entryTime = new Date(entry.timestamp).getTime();
-        return entryTime < dailyCutoff;
-      });
-      storage.requestCounts = storage.requestCounts.filter((entry) => {
-        const entryTime = new Date(entry.timestamp).getTime();
-        return entryTime < dailyCutoff;
-      });
+      storage.entries = storage.entries.filter((entry) => new Date(entry.timestamp).getTime() < dailyCutoff);
+      storage.requestCounts = storage.requestCounts.filter((entry) => new Date(entry.timestamp).getTime() < dailyCutoff);
       storage.lastUpdated = new Date().toISOString();
       await writeUsageFile(storage);
-      
-      const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
-      return NextResponse.json({ ok: true, usage: { tokens: usage.tokens, requests: usage.requests, models: usage.models, lastUpdated: storage.lastUpdated } });
+
+      return NextResponse.json({ ok: true, usage: buildUsageResponse(storage) });
     }
 
     if (reset === "before" && before) {
       const cutoffTime = new Date(before).getTime();
-      storage.entries = storage.entries.filter((entry) => {
-        const entryTime = new Date(entry.timestamp).getTime();
-        return entryTime >= cutoffTime;
-      });
-      storage.requestCounts = storage.requestCounts.filter((entry) => {
-        const entryTime = new Date(entry.timestamp).getTime();
-        return entryTime >= cutoffTime;
-      });
+      storage.entries = storage.entries.filter((entry) => new Date(entry.timestamp).getTime() >= cutoffTime);
+      storage.requestCounts = storage.requestCounts.filter((entry) => new Date(entry.timestamp).getTime() >= cutoffTime);
       storage.lastUpdated = new Date().toISOString();
       await writeUsageFile(storage);
-      
-      const usage = calculateTimeSeriesData(storage.entries, storage.requestCounts);
-      return NextResponse.json({ ok: true, usage: { tokens: usage.tokens, requests: usage.requests, models: usage.models, lastUpdated: storage.lastUpdated } });
+
+      return NextResponse.json({ ok: true, usage: buildUsageResponse(storage) });
     }
 
     return NextResponse.json(

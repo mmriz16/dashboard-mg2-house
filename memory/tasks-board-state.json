@@ -1,87 +1,112 @@
 {
-  "overrides": {
-    "manual-wallpaper-native-module-20260306": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-06T11:00:00.000Z"
-    },
-    "manual-wallpaper-auto-update-20260306": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-06T11:15:00.000Z"
-    },
-    "manual-wallpaper-eas-build-setup-20260306": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-06T11:45:00.000Z"
-    },
-    "manual-memory-page-api-connect-20260304": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-06T23:40:00.000Z"
-    },
-    "manual-files-page-api-connect-20260304": {
-      "status": "planning",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T15:44:00.000Z"
-    },
-    "manual-kanban-flicker-fix-20260304": {
-      "status": "done",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T10:05:50.854Z"
-    },
-    "manual-token-usage-tracking-20260304": {
-      "status": "done",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T16:15:00.000Z"
-    },
-    "manual-memory-page-spec-20260303": {
-      "status": "done",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T14:00:00.000Z"
-    },
-    "manual-mmaubf5j": {
-      "status": "done",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T14:00:00.000Z"
-    },
-    "manual-memory-page-filter-20260303": {
-      "updatedAt": "2026-03-06T21:04:51.892Z",
-      "status": "review"
-    },
-    "manual-subagent-operating-model-20260303": {
-      "status": "done",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T02:08:34.839Z"
-    },
-    "manual-subagent-spawn-protocol-20260304": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T21:02:00.000Z"
-    },
-    "manual-subagent-handoff-format-20260304": {
-      "updatedAt": "2026-03-06T21:06:01.193Z",
-      "status": "review"
-    },
-    "manual-subagent-error-handling-20260304": {
-      "status": "planning",
-      "needsRework": false,
-      "updatedAt": "2026-03-04T16:49:00.000Z"
-    },
-    "manual-subagent-role-files-20260304": {
-      "status": "review",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T21:01:00.000Z"
-    },
-    "manual-bailian-webhook-server-20260305": {
-      "status": "planning",
-      "needsRework": false,
-      "updatedAt": "2026-03-05T16:47:00.000Z"
-    },
-    "manual-hierarchy-agent-registry-20260307": {
-      "status": "planning",
-      "needsRework": false,
-      "updatedAt": "2026-03-07T00:10:00.000Z"
-    }
-  }
+    "overrides":  {
+                      "manual-task-priority-order-20260404": {
+                                                              "status": "review",
+                                                              "priority": "high",
+                                                              "needsRework": false,
+                                                              "updatedAt": "2026-04-04T14:00:00.000Z"
+                                                          },
+                      "manual-taskboard-url-fix-20260402":  {
+                                                              "status":  "review",
+                                                              "priority":  "high",
+                                                              "needsRework":  false,
+                                                              "updatedAt":  "2026-04-02T14:00:00.000Z"
+                                                          },
+                      "manual-modular-tileset-20260308":  {
+                                                              "status":  "review",
+                                                              "priority":  "medium",
+                                                              "needsRework":  false,
+                                                              "updatedAt":  "2026-03-16T21:00:00+07:00"
+                                                          },
+                      "manual-hierarchy-page-20260307":  {
+                                                             "status":  "review",
+                                                             "priority":  "medium",
+                                                             "needsRework":  false,
+                                                             "updatedAt":  "2026-03-30T10:35:00+07:00"
+                                                         },
+                      "manual-bailian-webhook-20260305":  {
+                                                              "status":  "review",
+                                                              "priority":  "high",
+                                                              "needsRework":  false,
+                                                              "updatedAt":  "2026-04-02T17:10:00+07:00"
+                                                          },
+                      "manual-error-retry-20260304":  {
+                                                          "status":  "review",
+                                                          "priority":  "high",
+                                                          "needsRework":  false,
+                                                          "updatedAt":  "2026-03-11T21:00:00+07:00"
+                                                      },
+                      "manual-files-page-api-20260308":  {
+                                                             "status":  "review",
+                                                             "priority":  "medium",
+                                                             "needsRework":  false,
+                                                             "updatedAt":  "2026-03-12T21:00:00+07:00"
+                                                         },
+                      "manual-memory-page-api-20260307":  {
+                                                              "status":  "review",
+                                                              "priority":  "medium",
+                                                              "needsRework":  false,
+                                                              "updatedAt":  "2026-03-10T11:00:00+07:00"
+                                                          },
+                      "manual-subagent-handoff-20260307":  {
+                                                               "status":  "review",
+                                                               "priority":  "high",
+                                                               "needsRework":  false,
+                                                               "updatedAt":  "2026-03-07T00:00:00+07:00"
+                                                           },
+                      "manual-memory-filter-20260307":  {
+                                                            "status":  "review",
+                                                            "priority":  "high",
+                                                            "needsRework":  false,
+                                                            "updatedAt":  "2026-03-07T00:00:00+07:00"
+                                                        },
+                      "manual-eas-build-20260306":  {
+                                                        "status":  "review",
+                                                        "priority":  "medium",
+                                                        "needsRework":  false,
+                                                        "updatedAt":  "2026-03-06T00:00:00+07:00"
+                                                    },
+                      "manual-auto-update-bg-20260306":  {
+                                                             "status":  "review",
+                                                             "priority":  "high",
+                                                             "needsRework":  false,
+                                                             "updatedAt":  "2026-03-06T00:00:00+07:00"
+                                                         },
+                      "manual-token-usage-20260305":  {
+                                                          "status":  "review",
+                                                          "priority":  "high",
+                                                          "needsRework":  false,
+                                                          "updatedAt":  "2026-03-05T00:00:00+07:00"
+                                                      },
+                      "manual-kanban-flicker-20260306":  {
+                                                             "status":  "review",
+                                                             "priority":  "medium",
+                                                             "needsRework":  false,
+                                                             "updatedAt":  "2026-03-06T00:00:00+07:00"
+                                                         },
+                      "manual-pokemon-auto-20260307":  {
+                                                           "status":  "review",
+                                                           "priority":  "high",
+                                                           "needsRework":  false,
+                                                           "updatedAt":  "2026-03-08T00:00:00+07:00"
+                                                       },
+                      "cron-daily-update-001":  {
+                                                    "status":  "done",
+                                                    "priority":  "medium",
+                                                    "needsRework":  false,
+                                                    "updatedAt":  "2026-03-08T09:00:00+07:00"
+                                                },
+                      "cron-daily-ops-001":  {
+                                                 "status":  "done",
+                                                 "priority":  "medium",
+                                                 "needsRework":  false,
+                                                 "updatedAt":  "2026-03-08T20:00:00+07:00"
+                                             },
+                      "cron-work-transition-001":  {
+                                                       "status":  "done",
+                                                       "priority":  "medium",
+                                                       "needsRework":  false,
+                                                       "updatedAt":  "2026-03-08T18:05:00+07:00"
+                                                   }
+                  }
 }

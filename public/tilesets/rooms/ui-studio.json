@@ -1,0 +1,63 @@
+{
+  "roomId": "ui-studio",
+  "roomName": "UI Studio",
+  "description": "A creative workspace for UI/UX design with collaborative tools and inspiration boards",
+  "dimensions": {
+    "width": 16,
+    "height": 12
+  },
+  "tilemap": [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 0, 1],
+    [1, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 8, 8, 8, 0, 0, 8, 8, 8, 0, 0, 0, 1],
+    [1, 0, 0, 0, 8, 8, 8, 0, 0, 8, 8, 8, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 9, 9, 9, 9, 0, 0, 0, 0, 9, 9, 9, 9, 0, 1],
+    [1, 0, 9, 9, 9, 9, 0, 0, 0, 0, 9, 9, 9, 9, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  ],
+  "collisionGrid": [
+    [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    [true, false, true, true, false, false, false, false, false, false, false, false, true, true, false, true],
+    [true, false, true, true, false, false, false, false, false, false, false, false, true, true, false, true],
+    [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    [true, false, false, false, true, true, true, false, false, true, true, true, false, false, false, true],
+    [true, false, false, false, true, true, true, false, false, true, true, true, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    [true, false, true, true, true, true, false, false, false, false, true, true, true, true, false, true],
+    [true, false, true, true, true, true, false, false, false, false, true, true, true, true, false, true],
+    [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
+  ],
+  "objects": [
+    {
+      "type": "workstation",
+      "position": {"x": 4, "y": 5},
+      "size": {"width": 3, "height": 2},
+      "properties": {"name": "Design Workstation 1"}
+    },
+    {
+      "type": "workstation",
+      "position": {"x": 9, "y": 5},
+      "size": {"width": 3, "height": 2},
+      "properties": {"name": "Design Workstation 2"}
+    },
+    {
+      "type": "inspiration-board",
+      "position": {"x": 2, "y": 8},
+      "size": {"width": 4, "height": 2},
+      "properties": {"name": "Inspiration Board Left"}
+    },
+    {
+      "type": "inspiration-board",
+      "position": {"x": 10, "y": 8},
+      "size": {"width": 4, "height": 2},
+      "properties": {"name": "Inspiration Board Right"}
+    }
+  ]
+}

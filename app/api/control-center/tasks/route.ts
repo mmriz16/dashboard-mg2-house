@@ -213,6 +213,15 @@ function priorityWeight(priority: Priority) {
   return priority === 'high' ? 3 : priority === 'medium' ? 2 : 1;
 }
 
+function updatedAtSortValue(updatedAt: string | undefined) {
+  if (!updatedAt) return Number.MAX_SAFE_INTEGER;
+
+  const parsed = Date.parse(updatedAt);
+  if (Number.isNaN(parsed)) return Number.MAX_SAFE_INTEGER;
+
+  return parsed;
+}
+
 async function getHandler(req: NextRequest) {
   void req;
   try {
@@ -269,7 +278,7 @@ async function getHandler(req: NextRequest) {
         if (rw !== 0) return rw;
         const p = priorityWeight(b.priority) - priorityWeight(a.priority);
         if (p !== 0) return p;
-        return String(b.updatedAt).localeCompare(String(a.updatedAt));
+        return updatedAtSortValue(a.updatedAt) - updatedAtSortValue(b.updatedAt);
       });
 
     const suggestedAssignments = idleSubagents.slice(0, queueCandidates.length).map((sub, idx) => ({

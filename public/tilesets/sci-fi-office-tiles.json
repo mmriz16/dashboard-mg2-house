@@ -1,0 +1,134 @@
+{
+  "name": "Sci-Fi Office Modular Tileset",
+  "description": "CC0 modular tileset for sci-fi/office themed agent rooms",
+  "tileSize": 32,
+  "spriteSheet": "sci-fi-office-tiles.png",
+  "tiles": [
+    {
+      "id": "floor_01",
+      "name": "Basic Floor",
+      "type": "floor",
+      "collision": false,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "floor_02",
+      "name": "Patterned Floor",
+      "type": "floor",
+      "collision": false,
+      "x": 32,
+      "y": 0
+    },
+    {
+      "id": "wall_01",
+      "name": "Basic Wall",
+      "type": "wall",
+      "collision": true,
+      "x": 64,
+      "y": 0
+    },
+    {
+      "id": "wall_02",
+      "name": "Panel Wall",
+      "type": "wall",
+      "collision": true,
+      "x": 96,
+      "y": 0
+    },
+    {
+      "id": "wall_corner_tl",
+      "name": "Wall Corner Top Left",
+      "type": "wall",
+      "collision": true,
+      "x": 128,
+      "y": 0
+    },
+    {
+      "id": "wall_corner_tr",
+      "name": "Wall Corner Top Right",
+      "type": "wall",
+      "collision": true,
+      "x": 160,
+      "y": 0
+    },
+    {
+      "id": "wall_corner_bl",
+      "name": "Wall Corner Bottom Left",
+      "type": "wall",
+      "collision": true,
+      "x": 192,
+      "y": 0
+    },
+    {
+      "id": "wall_corner_br",
+      "name": "Wall Corner Bottom Right",
+      "type": "wall",
+      "collision": true,
+      "x": 224,
+      "y": 0
+    },
+    {
+      "id": "desk_01",
+      "name": "Office Desk",
+      "type": "furniture",
+      "collision": true,
+      "x": 0,
+      "y": 32
+    },
+    {
+      "id": "chair_01",
+      "name": "Office Chair",
+      "type": "furniture",
+      "collision": true,
+      "x": 32,
+      "y": 32
+    },
+    {
+      "id": "console_01",
+      "name": "Control Console",
+      "type": "furniture",
+      "collision": true,
+      "x": 64,
+      "y": 32
+    },
+    {
+      "id": "terminal_01",
+      "name": "Computer Terminal",
+      "type": "furniture",
+      "collision": true,
+      "x": 96,
+      "y": 32
+    },
+    {
+      "id": "server_rack_01",
+      "name": "Server Rack",
+      "type": "furniture",
+      "collision": true,
+      "x": 128,
+      "y": 32
+    },
+    {
+      "id": "door_01",
+      "name": "Door",
+      "type": "door",
+      "collision": false,
+      "x": 160,
+      "y": 32
+    },
+    {
+      "id": "window_01",
+      "name": "Window",
+      "type": "window",
+      "collision": true,
+      "x": 192,
+      "y": 32
+    }
+  ],
+  "roomTypes": [
+    "Builder Lab",
+    "QA Station", 
+    "UI Studio",
+    "Command Center"
+  ]
+}

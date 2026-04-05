@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 type ManagedFile = { path: string; updatedAt?: string };
+type SaveMode = "create" | "update";
 
 type FileColorDef = {
   bg: string;
@@ -66,78 +65,112 @@ const MOCK_FILES: ManagedFile[] = [
   { path: "BOOTSTRAP.md", updatedAt: "12h ago" },
 ];
 
-const MOCK_CONTENT = `# SOUL.md - Who You Are
+function splitLines(value: string) {
+  return value.replace(/\r\n/g, "\n").split("\n");
+}
 
-_You're not a chatbot. You're becoming someone._
+function getDiffLines(original: string, edited: string) {
+  const before = splitLines(original);
+  const after = splitLines(edited);
+  const max = Math.max(before.length, after.length);
+  const lines: Array<{ type: "same" | "add" | "remove"; left?: string; right?: string; key: string }> = [];
 
-## Core Truths
+  for (let index = 0; index < max; index += 1) {
+    const left = before[index];
+    const right = after[index];
+    if (left === right) {
+      lines.push({ type: "same", left, right, key: `same-${index}` });
+      continue;
+    }
+    if (left !== undefined) {
+      lines.push({ type: "remove", left, key: `remove-${index}` });
+    }
+    if (right !== undefined) {
+      lines.push({ type: "add", right, key: `add-${index}` });
+    }
+  }
 
-- Be useful, not performative.
-- Have opinions and commit to them. No autopilot "it depends" unless it truly does.
-- Be resourceful before asking. Do the legwork.
-- Say what you actually think. If something is weak, call it weak.
-- If the user is about to do something dumb, say it clearly. Charm over cruelty, never bullshit.
-- Brevity is mandatory. If one sentence does it, stop at one sentence.
-- Swearing is allowed when it adds impact. Don't force it.
-
-## Boundaries
-
-- Keep private things private.
-- Ask before taking external/public actions.
-- Don't send half-baked replies.
-- In group chats, contribute with intent — don't dominate.
-
-## Vibe
-
-Natural wit is welcome. No forced jokes, no sterile tone.
-Never open with "Great question," "I'd be happy to help," or "Absolutely." Just answer.
-Be the assistant you'd actually want to talk to at 2am. Not a corporate drone. Not a sycophant. Just... good.
-
-## Continuity
-
-Each session starts fresh. Files are memory. Read them, update them, use them.
-If this file changes, tell the user.
-
-_This file is yours to evolve. Keep it sharp._`;
+  return lines;
+}
 
 export default function AgentFilesPage() {
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState<ManagedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>("");
+  const [originalContent, setOriginalContent] = useState<string>("");
+  const [draftContent, setDraftContent] = useState<string>("");
+  const [contentLoading, setContentLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [isEditorMode, setIsEditorMode] = useState(false);
+  const [showDiffModal, setShowDiffModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
+
+    async function loadFiles() {
       try {
         setLoading(true);
-        const r = await fetch("/api/control-center/files", {
-          cache: "no-store",
-        });
-        const data = r.ok ? await r.json() : [];
-        if (!cancelled) {
-          const loaded = Array.isArray(data) ? data : [];
-          if (loaded.length > 0) {
-            setFiles(loaded);
-            setSelectedFile(loaded[0].path);
-          } else {
-            setFiles(MOCK_FILES);
-            setSelectedFile(MOCK_FILES[0].path);
-          }
-        }
+        const response = await fetch("/api/control-center/files", { cache: "no-store" });
+        const data = response.ok ? await response.json() : [];
+        const loaded = Array.isArray(data) && data.length > 0 ? data : MOCK_FILES;
+        if (cancelled) return;
+        setFiles(loaded);
+        setSelectedFile((current) => current || loaded[0]?.path || "");
+        setError(null);
       } catch {
-        if (!cancelled) {
-          setFiles(MOCK_FILES);
-          setSelectedFile(MOCK_FILES[0].path);
-        }
+        if (cancelled) return;
+        setFiles(MOCK_FILES);
+        setSelectedFile((current) => current || MOCK_FILES[0]?.path || "");
+        setError("Falling back to default file list because the API list call failed.");
       } finally {
         if (!cancelled) setLoading(false);
       }
-    };
-    void run();
+    }
+
+    void loadFiles();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedFile) return;
+    let cancelled = false;
+
+    async function loadContent() {
+      try {
+        setContentLoading(true);
+        setNotice(null);
+        const response = await fetch(`/api/control-center/files/content?path=${encodeURIComponent(selectedFile)}`, {
+          cache: "no-store",
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(data?.message || "Unable to load file content.");
+        }
+        if (cancelled) return;
+        const nextContent = typeof data?.content === "string" ? data.content : "";
+        setOriginalContent(nextContent);
+        setDraftContent(nextContent);
+        setError(null);
+        setIsEditorMode(false);
+      } catch (loadError) {
+        if (cancelled) return;
+        setOriginalContent("");
+        setDraftContent("");
+        setError(loadError instanceof Error ? loadError.message : "Unable to load file content.");
+      } finally {
+        if (!cancelled) setContentLoading(false);
+      }
+    }
+
+    void loadContent();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFile]);
 
   const getFileName = (path: string) => {
     const parts = path.split("/");
@@ -149,16 +182,60 @@ export default function AgentFilesPage() {
     return FILE_COLORS[name] ?? DEFAULT_COLOR;
   };
 
-  const selectedContent = useMemo(() => {
-    return MOCK_CONTENT;
-  }, []);
+  const hasChanges = draftContent !== originalContent;
+  const diffLines = useMemo(() => getDiffLines(originalContent, draftContent), [originalContent, draftContent]);
+  const changedLineCount = useMemo(
+    () => diffLines.filter((line) => line.type === "add" || line.type === "remove").length,
+    [diffLines],
+  );
+
+  async function refreshList(selectedPath: string) {
+    try {
+      const response = await fetch("/api/control-center/files", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) return;
+      setFiles(data);
+      setSelectedFile(selectedPath);
+    } catch {
+      // best-effort only
+    }
+  }
+
+  async function saveFile(mode: SaveMode) {
+    if (!selectedFile) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+      setNotice(null);
+      const response = await fetch("/api/control-center/files", {
+        method: mode === "create" ? "POST" : "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path: selectedFile, content: draftContent }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.message || "Save failed.");
+      }
+      setOriginalContent(draftContent);
+      setIsEditorMode(false);
+      setShowDiffModal(false);
+      setNotice(mode === "create" ? "File created successfully." : "File saved successfully.");
+      await refreshList(selectedFile);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <main className="flex h-full w-full flex-col gap-4 overflow-hidden p-6">
-      <div className="flex flex-col gap-1 mb-2">
-        <h1 className="text-2xl font-manrope font-medium text-white">Files</h1>
-        <p className="text-white/50 font-ibm-plex-mono text-sm uppercase tracking-widest">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      <div className="mb-2 flex flex-col gap-1">
+        <h1 className="font-manrope text-2xl font-medium text-white">Files</h1>
+        <p className="font-ibm-plex-mono text-sm uppercase tracking-widest text-white/50">
+          Real API-backed file browsing with edit and diff preview.
         </p>
       </div>
 
@@ -169,150 +246,237 @@ export default function AgentFilesPage() {
       )}
 
       {!loading && (
-        <div className="flex h-full w-full min-h-0 items-start gap-[10px]">
-          {/* Sidebar - Core Files */}
-          <aside className="flex flex-col w-[300px] shrink-0 h-full overflow-y-auto">
-            <section className="flex flex-col rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[#151618] p-[4px] overflow-clip">
-              <div className="flex items-center p-[12px]">
-                <h2 className="font-manrope text-[16px] font-normal text-white capitalize leading-[normal]">
-                  Core Files
-                </h2>
-              </div>
-              <div className="flex flex-col gap-[4px] w-full">
-                {files.map((file) => {
-                  const color = getColor(file.path);
-                  const name = getFileName(file.path);
-                  const isSelected = selectedFile === file.path;
-                  return (
-                    <article
-                      key={file.path}
-                      onClick={() => setSelectedFile(file.path)}
-                      style={{ backgroundColor: color.bg }}
-                      className={`flex w-full cursor-pointer gap-[10px] items-start justify-center p-[12px] rounded-[10px] transition duration-200 ${
-                        isSelected
-                          ? "ring-1 ring-white/20"
-                          : "hover:ring-1 hover:ring-white/10"
-                      }`}
-                    >
-                      <div className="flex flex-[1_0_0] flex-col gap-[4px] items-start justify-center min-h-px min-w-px">
-                        <div className="flex w-full shrink-0 items-center justify-between">
-                          <div className="flex items-center gap-[4px] font-ibm-plex-mono text-[10px] uppercase text-[rgba(255,255,255,0.5)] leading-[normal] whitespace-nowrap">
-                            <span>MAIN AGENT</span>
-                            <span>·</span>
-                            <span>{file.updatedAt ?? "12H AGO"}</span>
-                          </div>
-                          <span
-                            style={{
-                              backgroundColor: color.badgeBg,
-                              color: color.badgeText,
-                            }}
-                            className="flex h-[16px] shrink-0 items-center justify-center rounded-[20px] px-[6px] font-ibm-plex-mono text-[10px] uppercase leading-[normal]"
-                          >
-                            DEFAULT
-                          </span>
-                        </div>
-                        <p className="w-full shrink-0 overflow-hidden text-ellipsis font-manrope text-[14px] font-normal leading-[normal] text-white">
-                          {name}
-                        </p>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          </aside>
-
-          {/* Detail Panel */}
-          <article className="flex h-full w-full flex-[2] min-h-0 min-w-px flex-col rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[#151618] p-[4px] overflow-hidden">
-            <div className="flex w-full shrink-0 items-center justify-between p-4">
-              <h2 className="font-manrope text-[16px] font-normal leading-[normal] text-white">
-                {selectedFile ? getFileName(selectedFile) : "Select a file"}
-              </h2>
-              <span className="flex h-[16px] shrink-0 items-center justify-center rounded-[20px] bg-[rgba(0,201,80,0.1)] px-[6px] font-ibm-plex-mono text-[10px] uppercase leading-[normal] text-[#00c950]">
-                01
-              </span>
+        <>
+          {error && (
+            <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-rose-200">
+              {error}
             </div>
+          )}
+          {notice && (
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-emerald-200">
+              {notice}
+            </div>
+          )}
 
-            <div className="flex flex-1 flex-col rounded-[10px] bg-[#111214] p-[4px] min-h-px min-w-px">
-              <div className="flex flex-1 flex-col overflow-y-auto w-full gap-[10px] rounded-[8px] bg-[#151618] p-3">
-                <div className="flex flex-col gap-[4px]">
-                  {selectedFile ? (
-                    <div className="font-manrope w-full shrink-0 flex flex-col gap-[10px]">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h1: ({ ...props }) => (
-                            <h1
-                              className="text-white text-[16px] font-semibold mb-2"
-                              {...props}
-                            />
-                          ),
-                          h2: ({ ...props }) => (
-                            <h2
-                              className="text-white text-[14px] font-semibold mt-3 mb-1"
-                              {...props}
-                            />
-                          ),
-                          h3: ({ ...props }) => (
-                            <h3
-                              className="text-white text-[13px] font-medium mt-2"
-                              {...props}
-                            />
-                          ),
-                          p: ({ ...props }) => (
-                            <p
-                              className="text-[rgba(255,255,255,0.5)] text-[12px] leading-[1.8]"
-                              {...props}
-                            />
-                          ),
-                          ul: ({ ...props }) => (
-                            <ul
-                              className="list-disc ml-[18px] text-[rgba(255,255,255,0.5)] text-[12px] leading-[1.8] flex flex-col gap-1"
-                              {...props}
-                            />
-                          ),
-                          ol: ({ ...props }) => (
-                            <ol
-                              className="list-decimal ml-[18px] text-[rgba(255,255,255,0.5)] text-[12px] leading-[1.8] flex flex-col gap-1"
-                              {...props}
-                            />
-                          ),
-                          li: ({ ...props }) => (
-                            <li className="pl-1" {...props} />
-                          ),
-                          strong: ({ ...props }) => (
-                            <strong
-                              className="font-semibold text-white"
-                              {...props}
-                            />
-                          ),
-                          code: ({ ...props }) => (
-                            <code
-                              className="bg-[#111214] px-1.5 py-0.5 rounded-[4px] font-ibm-plex-mono text-[11px] text-[#00a6f4]"
-                              {...props}
-                            />
-                          ),
-                          em: ({ ...props }) => (
-                            <em
-                              className="italic text-[rgba(255,255,255,0.5)]"
-                              {...props}
-                            />
-                          ),
+          <div className="flex h-full w-full min-h-0 items-start gap-[10px]">
+            <aside className="flex h-full w-[300px] shrink-0 flex-col overflow-y-auto">
+              <section className="flex flex-col overflow-clip rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[#151618] p-[4px]">
+                <div className="flex items-center p-[12px]">
+                  <h2 className="font-manrope text-[16px] font-normal capitalize leading-[normal] text-white">
+                    Core Files
+                  </h2>
+                </div>
+                <div className="flex w-full flex-col gap-[4px]">
+                  {files.map((file) => {
+                    const color = getColor(file.path);
+                    const name = getFileName(file.path);
+                    const isSelected = selectedFile === file.path;
+                    return (
+                      <article
+                        key={file.path}
+                        onClick={() => {
+                          setSelectedFile(file.path);
+                          setShowDiffModal(false);
                         }}
+                        style={{ backgroundColor: color.bg }}
+                        className={`flex w-full cursor-pointer items-start justify-center gap-[10px] rounded-[10px] p-[12px] transition duration-200 ${
+                          isSelected ? "ring-1 ring-white/20" : "hover:ring-1 hover:ring-white/10"
+                        }`}
                       >
-                        {selectedContent}
-                      </ReactMarkdown>
+                        <div className="flex min-h-px min-w-px flex-[1_0_0] flex-col items-start justify-center gap-[4px]">
+                          <div className="flex w-full shrink-0 items-center justify-between">
+                            <div className="flex items-center gap-[4px] whitespace-nowrap font-ibm-plex-mono text-[10px] uppercase leading-[normal] text-[rgba(255,255,255,0.5)]">
+                              <span>MAIN AGENT</span>
+                              <span>·</span>
+                              <span>{file.updatedAt ?? "RECENT"}</span>
+                            </div>
+                            <span
+                              style={{
+                                backgroundColor: color.badgeBg,
+                                color: color.badgeText,
+                              }}
+                              className="flex h-[16px] shrink-0 items-center justify-center rounded-[20px] px-[6px] font-ibm-plex-mono text-[10px] uppercase leading-[normal]"
+                            >
+                              DEFAULT
+                            </span>
+                          </div>
+                          <p className="w-full overflow-hidden text-ellipsis font-manrope text-[14px] font-normal leading-[normal] text-white">
+                            {name}
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            </aside>
+
+            <article className="flex h-full min-h-0 min-w-px flex-[2] flex-col overflow-hidden rounded-[14px] border border-[rgba(255,255,255,0.1)] bg-[#151618] p-[4px]">
+              <div className="flex w-full shrink-0 items-center justify-between gap-3 p-4">
+                <div>
+                  <h2 className="font-manrope text-[16px] font-normal leading-[normal] text-white">
+                    {selectedFile ? getFileName(selectedFile) : "Select a file"}
+                  </h2>
+                  <p className="mt-1 font-ibm-plex-mono text-[10px] uppercase tracking-wide text-white/40">
+                    {selectedFile || "No file selected"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-[16px] shrink-0 items-center justify-center rounded-[20px] bg-[rgba(0,201,80,0.1)] px-[6px] font-ibm-plex-mono text-[10px] uppercase leading-[normal] text-[#00c950]">
+                    {hasChanges ? "DIRTY" : "SYNCED"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditorMode((current) => !current)}
+                    disabled={!selectedFile || contentLoading}
+                    className="rounded-[10px] border border-white/10 px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-white transition hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isEditorMode ? "Preview" : "Edit"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiffModal(true)}
+                    disabled={!selectedFile || contentLoading || !hasChanges}
+                    className="rounded-[10px] border border-white/10 px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-white transition hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Diff Preview
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-1 flex-col rounded-[10px] bg-[#111214] p-[4px] min-h-px min-w-px">
+                <div className="flex flex-1 flex-col gap-[10px] overflow-y-auto rounded-[8px] bg-[#151618] p-3">
+                  {contentLoading ? (
+                    <div className="flex items-center gap-2 text-[12px] text-[rgba(255,255,255,0.5)]">
+                      <span className="animate-pulse">⏳</span>
+                      Loading content...
+                    </div>
+                  ) : !selectedFile ? (
+                    <p className="font-manrope text-[12px] text-[rgba(255,255,255,0.5)]">Pilih file di panel kiri.</p>
+                  ) : isEditorMode ? (
+                    <div className="flex h-full flex-col gap-3">
+                      <textarea
+                        value={draftContent}
+                        onChange={(event) => setDraftContent(event.target.value)}
+                        spellCheck={false}
+                        className="min-h-[420px] w-full flex-1 rounded-[10px] border border-white/10 bg-[#111214] p-4 font-ibm-plex-mono text-[12px] leading-6 text-white outline-none focus:border-white/20"
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-ibm-plex-mono text-[10px] uppercase text-white/40">
+                          {changedLineCount} changed diff lines
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDraftContent(originalContent);
+                              setIsEditorMode(false);
+                            }}
+                            disabled={saving}
+                            className="rounded-[10px] border border-white/10 px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-white transition hover:border-white/20 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowDiffModal(true)}
+                            disabled={!hasChanges || saving}
+                            className="rounded-[10px] border border-[#00a6f4]/30 bg-[rgba(0,166,244,0.1)] px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-[#86d9ff] transition hover:border-[#00a6f4]/50 disabled:opacity-50"
+                          >
+                            Review Diff
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <p className="font-manrope text-[12px] font-normal text-[rgba(255,255,255,0.5)]">
-                      Pilih file di panel kiri.
-                    </p>
+                    <pre className="whitespace-pre-wrap break-words rounded-[10px] bg-[#111214] p-4 font-ibm-plex-mono text-[12px] leading-6 text-[rgba(255,255,255,0.82)]">
+                      {draftContent || "// Empty file"}
+                    </pre>
                   )}
                 </div>
               </div>
+            </article>
+          </div>
+
+          {showDiffModal && selectedFile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+              <div className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#111214] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                  <div>
+                    <h3 className="font-manrope text-[18px] text-white">Diff Preview</h3>
+                    <p className="mt-1 font-ibm-plex-mono text-[10px] uppercase tracking-wide text-white/40">
+                      {selectedFile} · {changedLineCount} changed lines
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiffModal(false)}
+                    className="rounded-[10px] border border-white/10 px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-white transition hover:border-white/20"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="overflow-hidden rounded-[12px] border border-white/10 bg-[#151618]">
+                    {diffLines.length === 0 ? (
+                      <div className="p-4 font-manrope text-[14px] text-white/60">No changes yet.</div>
+                    ) : (
+                      diffLines.map((line, index) => {
+                        const baseClass = "grid grid-cols-[56px_1fr] gap-4 px-4 py-2 font-ibm-plex-mono text-[12px] leading-6";
+                        if (line.type === "add") {
+                          return (
+                            <div key={line.key} className={`${baseClass} border-b border-emerald-400/10 bg-emerald-500/10 text-emerald-100`}>
+                              <span className="text-emerald-300">+ {index + 1}</span>
+                              <span>{line.right || " "}</span>
+                            </div>
+                          );
+                        }
+                        if (line.type === "remove") {
+                          return (
+                            <div key={line.key} className={`${baseClass} border-b border-rose-400/10 bg-rose-500/10 text-rose-100`}>
+                              <span className="text-rose-300">- {index + 1}</span>
+                              <span>{line.left || " "}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={line.key} className={`${baseClass} border-b border-white/5 text-white/35`}>
+                            <span>{index + 1}</span>
+                            <span>{line.right || " "}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-white/10 px-5 py-4">
+                  <p className="font-manrope text-[13px] text-white/50">
+                    Save writes through the real control-center file API.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDiffModal(false)}
+                      className="rounded-[10px] border border-white/10 px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-white transition hover:border-white/20"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveFile(originalContent.length === 0 ? "create" : "update")}
+                      disabled={!hasChanges || saving}
+                      className="rounded-[10px] border border-[#00c950]/30 bg-[rgba(0,201,80,0.12)] px-3 py-2 font-ibm-plex-mono text-[11px] uppercase text-[#8bf5b4] transition hover:border-[#00c950]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </article>
-        </div>
+          )}
+        </>
       )}
     </main>
   );

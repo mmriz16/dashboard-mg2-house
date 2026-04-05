@@ -1,0 +1,24 @@
+{
+  "tileset": {
+    "name": "Placeholder Sci-Fi Office Tileset",
+    "description": "Temporary placeholder tileset for Modular Tileset System task until CC0 assets are downloaded",
+    "tileSize": 32,
+    "tiles": [
+      {"id": "floor_01", "type": "floor", "collidable": false, "x": 0, "y": 0},
+      {"id": "floor_02", "type": "floor", "collidable": false, "x": 32, "y": 0},
+      {"id": "wall_corner_tl", "type": "wall", "collidable": true, "x": 64, "y": 0},
+      {"id": "wall_corner_tr", "type": "wall", "collidable": true, "x": 96, "y": 0},
+      {"id": "wall_corner_bl", "type": "wall", "collidable": true, "x": 128, "y": 0},
+      {"id": "wall_corner_br", "type": "wall", "collidable": true, "x": 160, "y": 0},
+      {"id": "wall_horizontal", "type": "wall", "collidable": true, "x": 192, "y": 0},
+      {"id": "wall_vertical", "type": "wall", "collidable": true, "x": 224, "y": 0},
+      {"id": "desk_01", "type": "furniture", "collidable": true, "x": 0, "y": 32},
+      {"id": "chair_01", "type": "furniture", "collidable": true, "x": 32, "y": 32},
+      {"id": "computer_01", "type": "furniture", "collidable": true, "x": 64, "y": 32},
+      {"id": "terminal_01", "type": "furniture", "collidable": true, "x": 96, "y": 32},
+      {"id": "server_rack", "type": "furniture", "collidable": true, "x": 128, "y": 32},
+      {"id": "console_01", "type": "furniture", "collidable": true, "x": 160, "y": 32},
+      {"id": "door_01", "type": "door", "collidable": false, "x": 192, "y": 32}
+    ]
+  }
+}

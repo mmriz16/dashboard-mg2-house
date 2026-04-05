@@ -8,6 +8,15 @@
         "mcp",
         "start"
       ]
+    },
+    "pencil": {
+      "transport": "stdio",
+      "command": "C:\\Users\\miftakhul.rizky\\AppData\\Local\\Programs\\Pencil\\resources\\app.asar.unpacked\\out\\mcp-server-windows-x64.exe",
+      "args": [
+        "--app",
+        "desktop"
+      ],
+      "env": {}
     }
   }
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:/Users/miftakhul.rizky/Downloads/PROClient_64/PROClient\" -name \"*.json\" -o -name \"*.txt\" -o -name \"*.csv\" -o -name \"*.xml\" 2>/dev/null | head -50)",
+      "Bash(wsl strings:*)",
+      "Bash(head -c 200 \"C:/Users/miftakhul.rizky/Downloads/PROClient_64/PROClient/PROClient_Data/data.unity3d\" | xxd 2>/dev/null | head -20)"
+    ]
+  }
+}

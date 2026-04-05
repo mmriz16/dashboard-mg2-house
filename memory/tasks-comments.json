@@ -1,68 +1,190 @@
 {
-  "comments": {
-    "manual-mmaubf5j": [
-      {
-        "id": "c-mmaubf6x",
-        "taskId": "manual-mmaubf5j",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "Implementasi selesai dan siap direview user. Commit: e545ec3",
-        "createdAt": "2026-03-03T16:46:44.649Z"
-      },
-      {
-        "id": "c-20260304-done",
-        "taskId": "manual-mmaubf5j",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "✅ DONE - Verifikasi final: SSE endpoint /api/control-center/tasks/stream aktif, event bus tasks-events.ts publish event on create/update/delete, UI pakai EventSource + polling fallback 10s, live clock ticker 30s dengan format dinamis (just now, X min ago, dll). Task moved to Done.",
-        "createdAt": "2026-03-04T14:00:00.000Z"
-      }
-    ],
-    "manual-memory-page-spec-20260303": [
-      {
-        "id": "c-mmbkx3c6",
-        "taskId": "manual-memory-page-spec-20260303",
-        "author": "You",
-        "authorType": "human",
-        "text": "test",
-        "createdAt": "2026-03-04T05:11:25.734Z"
-      },
-      {
-        "id": "c-mmbgdmjy",
-        "taskId": "manual-memory-page-spec-20260303",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "Implementasi MVP Memory page selesai: tambah endpoint GET /api/control-center/memory (long-term + list/detail daily), halaman /agent/memory read-only dengan layout 1/3 list + 2/3 detail, dan menu Sidebar > Agent > Memory. Lint repo masih merah oleh error lama di file lain.",
-        "createdAt": "2026-03-04T03:04:19.054Z"
-      },
-      {
-        "id": "c-20260304-done-memory",
-        "taskId": "manual-memory-page-spec-20260303",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "✅ DONE - Verifikasi final: API endpoint /api/control-center/memory berfungsi (long-term MEMORY.md + daily list dengan preview), UI /agent/memory dengan layout 1/3 list + 2/3 detail, read-only sesuai spec. Task moved to Done.",
-        "createdAt": "2026-03-04T14:00:00.000Z"
-      }
-    ],
-    "manual-memory-page-filter-20260303": [
-      {
-        "id": "c-mmeyuocq",
-        "taskId": "manual-memory-page-filter-20260303",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "? IMPLEMENTATION COMPLETE: (1) Connected to real API /api/control-center/memory, (2) Added month/year dropdown UI filters, (3) Removed mock data, (4) Added loading/error state handling. Files modified: app/(openclaw)/agent/memory/page.tsx",
-        "createdAt": "2026-03-06T14:04:46.154Z"
-      }
-    ],
-    "manual-subagent-handoff-format-20260304": [
-      {
-        "id": "c-mmeywfim",
-        "taskId": "manual-subagent-handoff-format-20260304",
-        "author": "Main Agent",
-        "authorType": "main-agent",
-        "text": "? IMPLEMENTATION COMPLETE: (1) Added role-specific handoff interfaces (BuilderHandoff, UIHandoff, QAHandoff), (2) Implemented validateHandoff() for schema validation, (3) Added createHandoffComment() for task history logging, (4) Added getNextStatus() for automatic status transitions, (5) Added createHandoffTemplate() for sub-agent prompts, (6) Added updateTaskFromHandoff() for API integration. Files modified: lib/openclaw/spawn.ts",
-        "createdAt": "2026-03-06T14:06:08.014Z"
-      }
-    ]
-  }
+    "comments":  {
+                     "manual-task-priority-order-20260404": [
+                                                                  {
+                                                                      "id": "c-20260404-priority-order-start",
+                                                                      "taskId": "manual-task-priority-order-20260404",
+                                                                      "author": "Main Agent",
+                                                                      "authorType": "main-agent",
+                                                                      "text": "Picked up from the merged local board fallback. Found the queue candidate sorter in app/api/control-center/tasks/route.ts was still using descending string compare on updatedAt, which favored newer tasks instead of the oldest backlog item when needsRework and priority matched.",
+                                                                      "createdAt": "2026-04-04T14:00:00.000Z"
+                                                                  },
+                                                                  {
+                                                                      "id": "c-20260404-priority-order-review",
+                                                                      "taskId": "manual-task-priority-order-20260404",
+                                                                      "author": "Main Agent",
+                                                                      "authorType": "main-agent",
+                                                                      "text": "Review note: queue candidate ordering now uses explicit oldest-first date comparison after needsRework and priority. Added a safe timestamp parser so placeholder/non-date values sink to the end instead of randomly winning the sort.",
+                                                                      "createdAt": "2026-04-04T14:00:00.000Z"
+                                                                  }
+                                                              ],
+                     "manual-taskboard-url-fix-20260402":  [
+                                                            {
+                                                                "id":  "c-20260402-taskboard-url-start",
+                                                                "taskId":  "manual-taskboard-url-fix-20260402",
+                                                                "author":  "Main Agent",
+                                                                "authorType":  "main-agent",
+                                                                "text":  "Picked up for this run after fallback board merge. Found a real regression risk in lib/openclaw/spawn.ts: sub-agent handoff writes were hardcoded to http://localhost:3000/api/control-center/tasks, which is brittle outside local dev and can silently break status/comment sync.",
+                                                                "createdAt":  "2026-04-02T14:00:00.000Z"
+                                                            },
+                                                            {
+                                                                "id":  "c-20260402-taskboard-url-review",
+                                                                "taskId":  "manual-taskboard-url-fix-20260402",
+                                                                "author":  "Main Agent",
+                                                                "authorType":  "main-agent",
+                                                                "text":  "Review note: replaced the hardcoded localhost:3000 task-board PATCH target in lib/openclaw/spawn.ts with env-aware resolution using NEXT_PUBLIC_APP_URL, APP_URL, BETTER_AUTH_URL, or NEXT_PUBLIC_SITE_URL, with 127.0.0.1:3000 kept as the dev fallback. Retry/backoff and payload behavior stayed intact.",
+                                                                "createdAt":  "2026-04-02T14:00:00.000Z"
+                                                            }
+                                                        ],
+                     "manual-mmaubf5j":  [
+                                             {
+                                                 "id":  "c-mmaubf6x",
+                                                 "taskId":  "manual-mmaubf5j",
+                                                 "author":  "Main Agent",
+                                                 "authorType":  "main-agent",
+                                                 "text":  "Implementasi selesai dan siap direview user. Commit: e545ec3",
+                                                 "createdAt":  "2026-03-03T16:46:44.649Z"
+                                             },
+                                             {
+                                                 "id":  "c-20260304-done",
+                                                 "taskId":  "manual-mmaubf5j",
+                                                 "author":  "Main Agent",
+                                                 "authorType":  "main-agent",
+                                                 "text":  "✅ DONE - Verifikasi final: SSE endpoint /api/control-center/tasks/stream aktif, event bus tasks-events.ts publish event on create/update/delete, UI pakai EventSource + polling fallback 10s, live clock ticker 30s dengan format dinamis (just now, X min ago, dll). Task moved to Done.",
+                                                 "createdAt":  "2026-03-04T14:00:00.000Z"
+                                             }
+                                         ],
+                     "manual-memory-page-spec-20260303":  [
+                                                              {
+                                                                  "id":  "c-mmbkx3c6",
+                                                                  "taskId":  "manual-memory-page-spec-20260303",
+                                                                  "author":  "You",
+                                                                  "authorType":  "human",
+                                                                  "text":  "test",
+                                                                  "createdAt":  "2026-03-04T05:11:25.734Z"
+                                                              },
+                                                              {
+                                                                  "id":  "c-mmbgdmjy",
+                                                                  "taskId":  "manual-memory-page-spec-20260303",
+                                                                  "author":  "Main Agent",
+                                                                  "authorType":  "main-agent",
+                                                                  "text":  "Implementasi MVP Memory page selesai: tambah endpoint GET /api/control-center/memory (long-term + list/detail daily), halaman /agent/memory read-only dengan layout 1/3 list + 2/3 detail, dan menu Sidebar \u003e Agent \u003e Memory. Lint repo masih merah oleh error lama di file lain.",
+                                                                  "createdAt":  "2026-03-04T03:04:19.054Z"
+                                                              },
+                                                              {
+                                                                  "id":  "c-20260304-done-memory",
+                                                                  "taskId":  "manual-memory-page-spec-20260303",
+                                                                  "author":  "Main Agent",
+                                                                  "authorType":  "main-agent",
+                                                                  "text":  "✅ DONE - Verifikasi final: API endpoint /api/control-center/memory berfungsi (long-term MEMORY.md + daily list dengan preview), UI /agent/memory dengan layout 1/3 list + 2/3 detail, read-only sesuai spec. Task moved to Done.",
+                                                                  "createdAt":  "2026-03-04T14:00:00.000Z"
+                                                              }
+                                                          ],
+                     "manual-memory-page-filter-20260303":  [
+                                                                {
+                                                                    "id":  "c-mmeyuocq",
+                                                                    "taskId":  "manual-memory-page-filter-20260303",
+                                                                    "author":  "Main Agent",
+                                                                    "authorType":  "main-agent",
+                                                                    "text":  "? IMPLEMENTATION COMPLETE: (1) Connected to real API /api/control-center/memory, (2) Added month/year dropdown UI filters, (3) Removed mock data, (4) Added loading/error state handling. Files modified: app/(openclaw)/agent/memory/page.tsx",
+                                                                    "createdAt":  "2026-03-06T14:04:46.154Z"
+                                                                }
+                                                            ],
+                     "manual-subagent-handoff-format-20260304":  [
+                                                                     {
+                                                                         "id":  "c-mmeywfim",
+                                                                         "taskId":  "manual-subagent-handoff-format-20260304",
+                                                                         "author":  "Main Agent",
+                                                                         "authorType":  "main-agent",
+                                                                         "text":  "? IMPLEMENTATION COMPLETE: (1) Added role-specific handoff interfaces (BuilderHandoff, UIHandoff, QAHandoff), (2) Implemented validateHandoff() for schema validation, (3) Added createHandoffComment() for task history logging, (4) Added getNextStatus() for automatic status transitions, (5) Added createHandoffTemplate() for sub-agent prompts, (6) Added updateTaskFromHandoff() for API integration. Files modified: lib/openclaw/spawn.ts",
+                                                                         "createdAt":  "2026-03-06T14:06:08.014Z"
+                                                                     }
+                                                                 ],
+                     "manual-files-page-api-connect-20260304":  [
+                                                                    {
+                                                                        "id":  "c-mmhzgale",
+                                                                        "taskId":  "manual-files-page-api-connect-20260304",
+                                                                        "author":  "You",
+                                                                        "authorType":  "human",
+                                                                        "text":  "error unable to load content, coba perbaiki ini",
+                                                                        "createdAt":  "2026-03-08T16:44:53.282Z"
+                                                                    }
+                                                                ],
+                     "task-files-page-api-001":  [
+                                                     {
+                                                         "id":  "c-mmi06fvd",
+                                                         "taskId":  "task-files-page-api-001",
+                                                         "author":  "You",
+                                                         "authorType":  "human",
+                                                         "text":  "fix // Unable to load content",
+                                                         "createdAt":  "2026-03-08T17:05:13.177Z"
+                                                     }
+                                                 ],
+                     "task-memory-page-api-001":  [
+                                                      {
+                                                          "id":  "c-mmi09npu",
+                                                          "taskId":  "task-memory-page-api-001",
+                                                          "author":  "You",
+                                                          "authorType":  "human",
+                                                          "text":  "buat agar MEMORY.md yang long term bisa dilihat detailnya",
+                                                          "createdAt":  "2026-03-08T17:07:43.314Z"
+                                                      }
+                                                  ],
+                     "manual-files-page-api-20260308":  [
+                                                            {
+                                                                "id":  "c-mmi0nxf9",
+                                                                "taskId":  "manual-files-page-api-20260308",
+                                                                "author":  "You",
+                                                                "authorType":  "human",
+                                                                "text":  "fix // Unable to load content",
+                                                                "createdAt":  "2026-03-08T17:18:49.077Z"
+                                                            },
+                                                            {
+                                                                "id":  "c-20260312-files-page-review",
+                                                                "taskId":  "manual-files-page-api-20260308",
+                                                                "author":  "Main Agent",
+                                                                "authorType":  "main-agent",
+                                                                "text":  "Review note: Files page now uses the real control-center file endpoints for list + content loading, supports inline editing, and shows a save-before-commit diff preview modal. API validation was hardened so core root files like AGENTS.md / MEMORY.md can be fetched and updated without tripping the old allowlist mismatch.",
+                                                                "createdAt":  "2026-03-12T14:00:00.000Z"
+                                                            }
+                                                        ],
+                     "manual-memory-page-api-20260307":  [
+                                                             {
+                                                                 "id":  "c-mmi0oyby",
+                                                                 "taskId":  "manual-memory-page-api-20260307",
+                                                                 "author":  "You",
+                                                                 "authorType":  "human",
+                                                                 "text":  "buat agar MEMORY.md yang long term bisa di click dan dilihat detailnya",
+                                                                 "createdAt":  "2026-03-08T17:19:36.910Z"
+                                                             }
+                                                         ],
+                     "manual-error-retry-20260304":  [
+                                                         {
+                                                             "id":  "c-20260311-error-retry-review",
+                                                             "taskId":  "manual-error-retry-20260304",
+                                                             "author":  "Main Agent",
+                                                             "authorType":  "main-agent",
+                                                             "text":  "Review note: hardened sub-agent handoff pipeline in lib/openclaw/spawn.ts. Added task-board PATCH retry/backoff, automatic status sync after handoff, UI Guardian rejection -\u003e backlog flow, and QA rework/backlog handling so failed reviews stop dying silently.",
+                                                             "createdAt":  "2026-03-11T14:00:00.000Z"
+                                                         }
+                                                     ],
+                     "manual-hierarchy-page-20260307":  [
+                                                            {
+                                                                "id":  "c-20260330-hierarchy-review",
+                                                                "taskId":  "manual-hierarchy-page-20260307",
+                                                                "author":  "Main Agent",
+                                                                "authorType":  "main-agent",
+                                                                "text":  "Review note: Hierarchy page no longer uses the static React Flow mock. It now fetches the real /api/control-center/agents registry, shows summary KPIs, renders agent cards with status/model/capability metadata, and includes graceful loading, empty, and error states. Validation: npx tsc --noEmit still fails, but only on pre-existing errors in app/api/control-center/tasks/stream/route.ts and app/api/openclaw/token-usage/route.ts; no new hierarchy-page TypeScript issue surfaced.",
+                                                                "createdAt":  "2026-03-30T03:35:00.000Z"
+                                                            },
+                                                            {
+                                                                "id":  "c-20260330-hierarchy-start",
+                                                                "taskId":  "manual-hierarchy-page-20260307",
+                                                                "author":  "Main Agent",
+                                                                "authorType":  "main-agent",
+                                                                "text":  "Picked up from Planning and moved into active implementation. API board was unavailable, so execution is using the merged local board state. Scope for this run: replace the static React Flow hierarchy screen with a real Agent Registry card layout wired to the control-center agents endpoint and aligned with the existing dark design system.",
+                                                                "createdAt":  "2026-03-30T03:35:00.000Z"
+                                                            }
+                                                        ]
+                 }
 }
