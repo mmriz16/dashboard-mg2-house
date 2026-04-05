@@ -207,7 +207,7 @@ function calculateTimeSeriesData(
   };
 }
 
-function cleanupOldEntries(entries: TokenUsageEntry[]): TokenUsageEntry[] {
+function cleanupOldEntries<T extends { timestamp: string }>(entries: T[]): T[] {
   const cutoff = Date.now() - MS_IN_90_DAYS;
   return entries.filter((entry) => {
     const entryTime = new Date(entry.timestamp).getTime();
