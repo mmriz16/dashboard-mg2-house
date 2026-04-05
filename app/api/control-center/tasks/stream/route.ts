@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { withCapability } from '@/lib/auth/guards';
 import { getTasksEventVersion, subscribeTasksEvent } from '@/lib/tasks-events';
 
-async function getHandler(req: NextRequest) {
+async function getHandler(req: NextRequest): Promise<NextResponse> {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -32,7 +32,7 @@ async function getHandler(req: NextRequest) {
     },
   });
 
-  return new Response(stream, {
+  return new NextResponse(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
